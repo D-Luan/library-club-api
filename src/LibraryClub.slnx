@@ -1,1 +1,4 @@
-<Solution />
+<Solution>
+  <Project Path="LibraryClub.Api/LibraryClub.Api.csproj" Id="ea92a2ef-4dc1-4b4f-9f3e-9e088fb50555" />
+  <Project Path="LibraryClub.Tests/LibraryClub.Tests.csproj" Id="33cab0e4-0856-4aa8-96bb-203346c672bd" />
+</Solution>
