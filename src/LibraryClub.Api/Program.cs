@@ -1,4 +1,5 @@
 using LibraryClub.Api.Data;
+using DbUp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,22 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+EnsureDatabase.For.SqlDatabase(connectionString);
+
+var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Scripts");
+
+var upgrader = DeployChanges.To
+    .SqlDatabase(connectionString)
+    .WithScriptsFromFileSystem(scriptsPath)
+    .LogToConsole()
+    .Build();
+
+var result = upgrader.PerformUpgrade();
+if (!result.Successful)
+{
+    throw new InvalidOperationException("Database migration failed.", result.Error);
+}
 
 if (app.Environment.IsDevelopment())
 {
