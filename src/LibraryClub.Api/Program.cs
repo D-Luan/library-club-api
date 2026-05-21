@@ -1,5 +1,15 @@
+using LibraryClub.Api.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+}
+
+builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
