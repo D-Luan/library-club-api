@@ -14,11 +14,46 @@ public class Reader
     public Reader(string name, string email)
     {
         Id = Guid.NewGuid();
-        CreatedAt = DateTime.UtcNow;
         Status = ReaderStatus.Active;
+        CreatedAt = DateTime.UtcNow;
 
         SetName(name);
         SetEmail(email);
+    }
+
+    private Reader(
+        Guid id, 
+        string name, 
+        string email, 
+        ReaderStatus status, 
+        DateTime createdAt)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("Reader id cannot be empty");
+        }
+
+        if (createdAt == default)
+        {
+            throw new ArgumentException("Reader creation date cannot be empty");
+        }
+
+        Id = id;
+        Status = status;
+        CreatedAt = createdAt;
+
+        SetName(name);
+        SetEmail(email);
+    }
+
+    public static Reader Restore(
+        Guid id, 
+        string name, 
+        string email, 
+        ReaderStatus status, 
+        DateTime createdAt)
+    {
+        return new Reader(id, name, email, status, createdAt);
     }
 
     public void SetName(string name)
@@ -38,7 +73,7 @@ public class Reader
             throw new ArgumentException("Email cannot be empty");
         }
 
-        if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^s@\s]+$"))
+        if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
         {
             throw new ArgumentException("Invalid email format");
         }
