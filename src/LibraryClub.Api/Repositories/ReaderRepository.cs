@@ -113,7 +113,7 @@ public class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReader
             record.Id,
             record.Name,
             record.Email,
-            Enum.Parse<ReaderStatus>(record.Status),
+            status,
             record.CreatedAt);
     }
 
