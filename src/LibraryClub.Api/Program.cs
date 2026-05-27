@@ -1,6 +1,7 @@
 using LibraryClub.Api.Data;
 using LibraryClub.Api.Repositories;
 using DbUp;
+using LibraryClub.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
+builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
