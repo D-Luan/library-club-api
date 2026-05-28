@@ -4,6 +4,7 @@ using DbUp;
 using LibraryClub.Api.Services;
 using FluentValidation;
 using LibraryClub.Api.Validators;
+using LibraryClub.Api.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(co
 builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
@@ -51,6 +54,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseExceptionHandler();
 
 app.MapControllers();
 
