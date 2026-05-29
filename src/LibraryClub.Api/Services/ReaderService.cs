@@ -1,6 +1,8 @@
-﻿using LibraryClub.Api.Models;
+﻿using LibraryClub.Api.Exceptions;
+using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
-using LibraryClub.Api.Services;
+
+namespace LibraryClub.Api.Services;
 
 public class ReaderService(IReaderRepository readerRepository) : IReaderService
 {
@@ -10,7 +12,7 @@ public class ReaderService(IReaderRepository readerRepository) : IReaderService
 
         if (emailAlreadyExists)
         {
-            throw new InvalidOperationException("Reader email already exists");
+            throw new ConflictException("Reader email already exists");
         }
 
         var reader = new Reader(name, email);
@@ -31,7 +33,7 @@ public class ReaderService(IReaderRepository readerRepository) : IReaderService
 
         if (reader is null)
         {
-            throw new InvalidOperationException("Reader not found");
+            throw new NotFoundException("Reader not found");
         }
 
         reader.Inactivate();

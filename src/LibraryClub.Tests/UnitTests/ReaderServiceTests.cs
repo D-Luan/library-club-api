@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
@@ -50,7 +51,7 @@ public class ReaderServiceTests
         var service = new ReaderService(repository);
 
         // Act
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.CreateAsync("John Doe", "john.doe@email.com"));
 
         // Assert
@@ -145,7 +146,7 @@ public class ReaderServiceTests
         var service = new ReaderService(repository);
 
         // Act
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.InactivateAsync(readerId));
 
         // Assert
