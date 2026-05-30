@@ -5,6 +5,7 @@ using LibraryClub.Tests.Fixtures;
 
 namespace LibraryClub.Tests.IntegrationTests;
 
+[Trait("Category", "Integration")]
 public class ReadersControllerTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private readonly LibraryClubApiFactory _factory;

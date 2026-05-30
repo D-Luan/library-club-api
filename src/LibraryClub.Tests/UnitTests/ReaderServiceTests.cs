@@ -7,6 +7,7 @@ using NSubstitute;
 
 namespace LibraryClub.Tests.UnitTests;
 
+[Trait("Category", "Unit")]
 public class ReaderServiceTests
 {
     [Fact]

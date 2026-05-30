@@ -6,6 +6,7 @@ using LibraryClub.Tests.Fixtures;
 
 namespace LibraryClub.Tests.IntegrationTests;
 
+[Trait("Category", "Integration")]
 public sealed class ReaderRepositoryTests(DatabaseFixture fixture) : IClassFixture<DatabaseFixture>
 {
     private readonly ReaderRepository _repository = new(new SqlConnectionFactory(fixture.ConnectionString));

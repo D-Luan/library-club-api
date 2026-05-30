@@ -3,6 +3,7 @@ using LibraryClub.Api.Models;
 
 namespace LibraryClub.Tests.UnitTests;
 
+[Trait("Category", "Unit")]
 public class ReaderTests
 {
     [Fact]
