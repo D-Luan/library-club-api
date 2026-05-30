@@ -1,18 +1,22 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace LibraryClub.Tests.Fixtures;
 
-public class LibraryClubApiFactory(string connectionString) : WebApplicationFactory<Program>
+public class LibraryClubApiFactory : WebApplicationFactory<Program>
 {
-    protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+    private const string ConnectionStringEnvironmentVariable = "ConnectionStrings__DefaultConnection";
+    private readonly string? _previousConnectionString;
+
+    public LibraryClubApiFactory(string connectionString)
     {
-        builder.ConfigureAppConfiguration((_, configuration) =>
-        {
-            configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:DefaultConnection"] = connectionString
-            });
-        });
+        _previousConnectionString = Environment.GetEnvironmentVariable(ConnectionStringEnvironmentVariable);
+        Environment.SetEnvironmentVariable(ConnectionStringEnvironmentVariable, connectionString);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Environment.SetEnvironmentVariable(ConnectionStringEnvironmentVariable, _previousConnectionString);
+
+        base.Dispose(disposing);
     }
 }
