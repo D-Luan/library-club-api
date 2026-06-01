@@ -1,1 +1,2 @@
 # Library Club API
+LibraryClub API is a .NET REST API for managing readers, reading clubs, and club subscriptions. The project focuses on clean backend practices using ASP.NET Core, Dapper, SQL Server, DbUp migrations, automated tests, Docker-based integration testing, and CI/CD with GitHub Actions and Azure.
