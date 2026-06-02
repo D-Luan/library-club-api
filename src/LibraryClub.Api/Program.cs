@@ -16,6 +16,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
+builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
