@@ -1,6 +1,5 @@
 using LibraryClub.Api.Data;
 using LibraryClub.Api.Repositories;
-using DbUp;
 using LibraryClub.Api.Services;
 using FluentValidation;
 using LibraryClub.Api.Validators;
@@ -15,8 +14,20 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 }
 
+var applicationInsightsConnectionString =
+     builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+     ?? builder.Configuration["ApplicationInsights:ConnectionString"];
+
+if (!builder.Environment.IsEnvironment("Testing") &&
+    !string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+{
+    builder.Services.AddApplicationInsightsTelemetry(options =>
+    {
+        options.ConnectionString = applicationInsightsConnectionString;
+    });
+}
+
 builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
-builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
@@ -27,21 +38,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-EnsureDatabase.For.SqlDatabase(connectionString);
-
 var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Scripts");
 
-var upgrader = DeployChanges.To
-    .SqlDatabase(connectionString)
-    .WithScriptsFromFileSystem(scriptsPath)
-    .LogToConsole()
-    .Build();
-
-var result = upgrader.PerformUpgrade();
-if (!result.Successful)
-{
-    throw new InvalidOperationException("Database migration failed.", result.Error);
-}
+DatabaseMigrator.Migrate(connectionString, scriptsPath);
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,4 +1,3 @@
-﻿using LibraryClub.Api.Data;
 using LibraryClub.Api.Enums;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
@@ -7,9 +6,12 @@ using LibraryClub.Tests.Fixtures;
 namespace LibraryClub.Tests.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public sealed class ReaderRepositoryTests(DatabaseFixture fixture) : IClassFixture<DatabaseFixture>
+[Collection(IntegrationTestCollection.Name)]
+public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifetime
 {
-    private readonly ReaderRepository _repository = new(new SqlConnectionFactory(fixture.ConnectionString));
+    private readonly ReaderRepository _repository = fixture.Repository;
+    public Task InitializeAsync() => fixture.ResetDatabaseAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task AddAsync_ShouldInsertReader_WhenReaderIsValid()

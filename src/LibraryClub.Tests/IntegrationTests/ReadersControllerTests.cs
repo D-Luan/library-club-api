@@ -6,16 +6,10 @@ using LibraryClub.Tests.Fixtures;
 namespace LibraryClub.Tests.IntegrationTests;
 
 [Trait("Category", "Integration")]
-public class ReadersControllerTests : IClassFixture<DatabaseFixture>, IDisposable
+[Collection(IntegrationTestCollection.Name)]
+public class ReadersControllerTests(IntegrationTestFixture fixture)
 {
-    private readonly LibraryClubApiFactory _factory;
-    private readonly HttpClient _client;
-
-    public ReadersControllerTests(DatabaseFixture fixture)
-    {
-        _factory = new LibraryClubApiFactory(fixture.ConnectionString);
-        _client = _factory.CreateClient();
-    }
+    private readonly HttpClient _client = fixture.Client;
 
     [Fact]
     public async Task Create_ShouldReturnCreated_WhenRequestIsValid()
@@ -122,11 +116,5 @@ public class ReadersControllerTests : IClassFixture<DatabaseFixture>, IDisposabl
             content: null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    public void Dispose()
-    {
-        _client.Dispose();
-        _factory.Dispose();
     }
 }
