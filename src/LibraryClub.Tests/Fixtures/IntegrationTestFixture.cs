@@ -12,13 +12,19 @@ public class IntegrationTestFixture : IAsyncLifetime
 
     private LibraryClubApiFactory? _factory;
     private HttpClient? _client;
-    private ReaderRepository? _repository;
+    private ReaderRepository? _readerRepository;
+    private ReadingClubRepository? _readingClubRepository;
 
     public string ConnectionString { get; private set; } = string.Empty;
 
-    public HttpClient Client => _client ?? throw new InvalidOperationException("Test client was not initialized.");
+    public HttpClient Client => 
+        _client ?? throw new InvalidOperationException("Test client was not initialized.");
 
-    public ReaderRepository Repository => _repository ?? throw new InvalidOperationException("Repository was not initialized.");
+    public ReaderRepository ReaderRepository => 
+        _readerRepository ?? throw new InvalidOperationException("Repository was not initialized.");
+
+    public ReadingClubRepository ReadingClubRepository => 
+        _readingClubRepository ?? throw new InvalidOperationException("Reading club repository was notinitialized.");
 
     public async Task InitializeAsync()
     {
@@ -30,7 +36,8 @@ public class IntegrationTestFixture : IAsyncLifetime
 
         DatabaseMigrator.Migrate(ConnectionString, scriptsPath);
 
-        _repository = new ReaderRepository(new SqlConnectionFactory(ConnectionString));
+        _readerRepository = new ReaderRepository(new SqlConnectionFactory(ConnectionString));
+        _readingClubRepository = new ReadingClubRepository(new SqlConnectionFactory(ConnectionString));
 
         _factory = new LibraryClubApiFactory(ConnectionString);
         _client = _factory.CreateClient();

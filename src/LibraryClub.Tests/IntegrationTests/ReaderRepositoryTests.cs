@@ -9,7 +9,7 @@ namespace LibraryClub.Tests.IntegrationTests;
 [Collection(IntegrationTestCollection.Name)]
 public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifetime
 {
-    private readonly ReaderRepository _repository = fixture.Repository;
+    private readonly ReaderRepository _repository = fixture.ReaderRepository;
     public Task InitializeAsync() => fixture.ResetDatabaseAsync();
     public Task DisposeAsync() => Task.CompletedTask;
 
