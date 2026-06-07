@@ -31,6 +31,7 @@ builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(co
 builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
 builder.Services.AddScoped<IReadingClubRepository, ReadingClubRepository>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
+builder.Services.AddScoped<IReadingClubService, ReadingClubService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
