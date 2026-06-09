@@ -6,6 +6,29 @@
 # dotenv files
 .env
 
+# Azure local parameter files with possible secrets
+infra/*.local.json
+infra/*.local.bicepparam
+infra/*secrets*.json
+infra/*secret*.json
+infra/main.parameters.json
+
+# Publish profiles
+*.PublishSettings
+*.pubxml.user
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Local app settings
+appsettings.Local.json
+appsettings.*.Local.json
+
+# User secrets / local config
+secrets.json
+
 # User-specific files
 *.rsuser
 *.suo
