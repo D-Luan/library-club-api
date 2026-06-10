@@ -24,25 +24,25 @@ CREATE TABLE ReadingClubs (
 
 CREATE TABLE ClubSubscriptions (
 	Id UNIQUEIDENTIFIER NOT NULL,
-	ReaderId UNIQUEIDENTIFIER NOT NULL,
-	ReadingClubId UNIQUEIDENTIFIER NOT NULL,
-	JoinedAt DATETIME2 NOT NULL CONSTRAINT DF_ClubSubscriptions_JoinedAt DEFAULT SYSUTCDATETIME(),
-	CancelledAt DATETIME2 NULL,
-	Status NVARCHAR(30) NOT NULL,
+    ReaderId UNIQUEIDENTIFIER NOT NULL,
+    ReadingClubId UNIQUEIDENTIFIER NOT NULL,
+    Status NVARCHAR(30) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ClubSubscriptions_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CanceledAt DATETIME2 NULL,
 
-	CONSTRAINT PK_ClubSubscriptions PRIMARY KEY (Id),
+    CONSTRAINT PK_ClubSubscriptions PRIMARY KEY (Id),
 
-	CONSTRAINT FK_ClubSubscriptions_Readers
+    CONSTRAINT FK_ClubSubscriptions_Readers
 		FOREIGN KEY (ReaderId)
-		REFERENCES Readers(Id),
+        REFERENCES Readers(Id),
 
-	CONSTRAINT FK_ClubSubscriptions_ReadingClubs
-		FOREIGN KEY (ReadingClubId)
-		REFERENCES ReadingClubs(Id),
+    CONSTRAINT FK_ClubSubscriptions_ReadingClubs
+        FOREIGN KEY (ReadingClubId)
+        REFERENCES ReadingClubs(Id),
 
-	CONSTRAINT CK_ClubSubscriptions_Status CHECK (Status IN ('Active', 'Cancelled'))
+    CONSTRAINT CK_ClubSubscriptions_Status CHECK (Status IN ('Active', 'Canceled'))
 );
 
-CREATE UNIQUE INDEX UX_ClubSubscriptions_Active 
+CREATE UNIQUE INDEX UX_ClubSubscriptions_Active
 ON ClubSubscriptions (ReaderId, ReadingClubId)
 WHERE Status = 'Active';
