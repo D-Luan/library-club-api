@@ -30,6 +30,7 @@ if (!builder.Environment.IsEnvironment("Testing") &&
 builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
 builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
 builder.Services.AddScoped<IReadingClubRepository, ReadingClubRepository>();
+builder.Services.AddScoped<IClubSubscriptionRepository, ClubSubscriptionRepository>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddScoped<IReadingClubService, ReadingClubService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
