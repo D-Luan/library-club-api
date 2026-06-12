@@ -33,6 +33,7 @@ builder.Services.AddScoped<IReadingClubRepository, ReadingClubRepository>();
 builder.Services.AddScoped<IClubSubscriptionRepository, ClubSubscriptionRepository>();
 builder.Services.AddScoped<IReaderService, ReaderService>();
 builder.Services.AddScoped<IReadingClubService, ReadingClubService>();
+builder.Services.AddScoped<IClubSubscriptionService, ClubSubscriptionService>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
