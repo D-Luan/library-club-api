@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 
 namespace LibraryClub.Tests.UnitTests;
@@ -25,7 +26,7 @@ public class ClubSubscriptionTests
     [Fact]
     public void Constructor_ShouldThrowException_WhenReaderIdIsEmpty()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ClubSubscription(Guid.Empty, Guid.NewGuid()));
 
         Assert.Equal("Reader id cannot be empty", exception.Message);
@@ -34,7 +35,7 @@ public class ClubSubscriptionTests
     [Fact]
     public void Constructor_ShouldThrowException_WhenReadingClubIdIsEmpty()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ClubSubscription(Guid.NewGuid(), Guid.Empty));
 
         Assert.Equal("Reading club id cannot be empty", exception.Message);
@@ -57,7 +58,7 @@ public class ClubSubscriptionTests
         var subscription = new ClubSubscription(Guid.NewGuid(), Guid.NewGuid());
         subscription.Cancel();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => subscription.Cancel());
+        var exception = Assert.Throws<ConflictException>(() => subscription.Cancel());
 
         Assert.Equal("Club subscription is already canceled", exception.Message);
     }

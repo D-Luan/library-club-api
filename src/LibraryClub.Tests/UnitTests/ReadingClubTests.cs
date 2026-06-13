@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 
 namespace LibraryClub.Tests.UnitTests;
@@ -9,8 +10,7 @@ public class ReadingClubTests
     [Fact]
     public void Constructor_ShouldCreateReadingClub_WhenDataIsValid()
     {
-        var readingClub = new ReadingClub("Classic Books", "Monthly classics discussion",
-"Classics");
+        var readingClub = new ReadingClub("Classic Books", "Monthly classics discussion", "Classics");
 
         Assert.NotEqual(Guid.Empty, readingClub.Id);
         Assert.Equal("Classic Books", readingClub.Name);
@@ -31,7 +31,7 @@ public class ReadingClubTests
     [Fact]
     public void Constructor_ShouldThrowException_WhenNameIsEmpty()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ReadingClub("", null, "Fantasy"));
 
         Assert.Equal("Name cannot be empty", exception.Message);
@@ -42,7 +42,7 @@ public class ReadingClubTests
     {
         var name = new string('A', 151);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ReadingClub(name, null, "Fantasy"));
 
         Assert.Equal("Name must have at most 150 characters", exception.Message);
@@ -53,7 +53,7 @@ public class ReadingClubTests
     {
         var description = new string('A', 1001);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ReadingClub("Fantasy Club", description, "Fantasy"));
 
         Assert.Equal("Description must have at most 1000 characters", exception.Message);
@@ -62,7 +62,7 @@ public class ReadingClubTests
     [Fact]
     public void Constructor_ShouldThrowException_WhenGenreIsEmpty()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ReadingClub("Fantasy Club", null, ""));
 
         Assert.Equal("Genre cannot be empty", exception.Message);
@@ -73,7 +73,7 @@ public class ReadingClubTests
     {
         var genre = new string('A', 101);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new ReadingClub("Fantasy Club", null, genre));
 
         Assert.Equal("Genre must have at most 100 characters", exception.Message);
@@ -95,7 +95,7 @@ public class ReadingClubTests
         var readingClub = new ReadingClub("Fantasy Club", null, "Fantasy");
         readingClub.Inactivate();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<ConflictException>(() =>
             readingClub.Inactivate());
 
         Assert.Equal("Reading club is already inactive", exception.Message);
@@ -107,7 +107,7 @@ public class ReadingClubTests
         var readingClub = new ReadingClub("Fantasy Club", null, "Fantasy");
         readingClub.Archive();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<ConflictException>(() =>
             readingClub.Inactivate());
 
         Assert.Equal("Archived reading club cannot be inactivated", exception.Message);
@@ -140,7 +140,7 @@ public class ReadingClubTests
         var readingClub = new ReadingClub("Fantasy Club", null, "Fantasy");
         readingClub.Archive();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<ConflictException>(() =>
             readingClub.Archive());
 
         Assert.Equal("Reading club is already archived", exception.Message);

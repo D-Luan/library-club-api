@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 
 namespace LibraryClub.Tests.UnitTests;
@@ -21,7 +22,7 @@ public class ReaderTests
     [Fact]
     public void SetName_ShouldThrowException_WhenNameIsEmpty()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() => 
             new Reader("", "john.doe@email.com"));
 
         Assert.Equal("Name cannot be empty", exception.Message);
@@ -30,7 +31,7 @@ public class ReaderTests
     [Fact]
     public void SetEmail_ShouldThrowException_WhenEmailIsEmpty()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() => 
             new Reader("John Doe", ""));
 
         Assert.Equal("Email cannot be empty", exception.Message);
@@ -39,7 +40,7 @@ public class ReaderTests
     [Fact]
     public void SetEmail_ShouldThrowException_WhenEmailIsInvalid()
     {
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<DomainValidationException>(() =>
             new Reader("John Doe", "invalid-email"));
 
         Assert.Equal("Invalid email format", exception.Message);
@@ -61,7 +62,7 @@ public class ReaderTests
         var reader = new Reader("Mary Taylor", "mary@gmail.com");
         reader.Inactivate();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<ConflictException>(() =>
             reader.Inactivate());
 
         Assert.Equal("Reader is already inactive", exception.Message);
