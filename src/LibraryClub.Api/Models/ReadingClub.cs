@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 
 namespace LibraryClub.Api.Models;
 
@@ -32,12 +33,12 @@ public class ReadingClub
     {
         if (id == Guid.Empty)
         {
-            throw new ArgumentException("Reading club id cannot be empty");
+            throw new DomainValidationException("Reading club id cannot be empty");
         }
 
         if (createdAt == default)
         {
-            throw new ArgumentException("Reading club creation date cannot be empty");
+            throw new DomainValidationException("Reading club creation date cannot be empty");
         }
 
         Id = id;
@@ -64,12 +65,12 @@ public class ReadingClub
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException("Name cannot be empty");
+            throw new DomainValidationException("Name cannot be empty");
         }
 
         if (name.Length > 150)
         {
-            throw new ArgumentException("Name must have at most 150 characters");
+            throw new DomainValidationException("Name must have at most 150 characters");
         }
 
         Name = name.Trim();
@@ -79,7 +80,7 @@ public class ReadingClub
     {
         if (description is not null && description.Length > 1000)
         {
-            throw new ArgumentException("Description must have at most 1000 characters");
+            throw new DomainValidationException("Description must have at most 1000 characters");
         }
 
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
@@ -89,12 +90,12 @@ public class ReadingClub
     {
         if (string.IsNullOrWhiteSpace(genre))
         {
-            throw new ArgumentException("Genre cannot be empty");
+            throw new DomainValidationException("Genre cannot be empty");
         }
 
         if (genre.Length > 100)
         {
-            throw new ArgumentException("Genre must have at most 100 characters");
+            throw new DomainValidationException("Genre must have at most 100 characters");
         }
 
         Genre = genre.Trim();
@@ -104,12 +105,12 @@ public class ReadingClub
     {
         if (Status == ReadingClubStatus.Inactive)
         {
-            throw new InvalidOperationException("Reading club is already inactive");
+            throw new ConflictException("Reading club is already inactive");
         }
 
         if (Status == ReadingClubStatus.Archived)
         {
-            throw new InvalidOperationException("Archived reading club cannot be inactivated");
+            throw new ConflictException("Archived reading club cannot be inactivated");
         }
 
         Status = ReadingClubStatus.Inactive;
@@ -119,7 +120,7 @@ public class ReadingClub
     {
         if (Status == ReadingClubStatus.Archived)
         {
-            throw new InvalidOperationException("Reading club is already archived");
+            throw new ConflictException("Reading club is already archived");
         }
 
         Status = ReadingClubStatus.Archived;

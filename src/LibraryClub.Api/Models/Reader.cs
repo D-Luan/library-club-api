@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 using System.Text.RegularExpressions;
 
 namespace LibraryClub.Api.Models;
@@ -30,12 +31,12 @@ public class Reader
     {
         if (id == Guid.Empty)
         {
-            throw new ArgumentException("Reader id cannot be empty");
+            throw new DomainValidationException("Reader id cannot be empty");
         }
 
         if (createdAt == default)
         {
-            throw new ArgumentException("Reader creation date cannot be empty");
+            throw new DomainValidationException("Reader creation date cannot be empty");
         }
 
         Id = id;
@@ -60,7 +61,7 @@ public class Reader
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException("Name cannot be empty");
+            throw new DomainValidationException("Name cannot be empty");
         }
 
         Name = name.Trim();
@@ -70,12 +71,12 @@ public class Reader
     {
         if (string.IsNullOrWhiteSpace(email))
         {
-            throw new ArgumentException("Email cannot be empty");
+            throw new DomainValidationException("Email cannot be empty");
         }
 
         if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
         {
-            throw new ArgumentException("Invalid email format");
+            throw new DomainValidationException("Invalid email format");
         }
 
         Email = email.Trim().ToLowerInvariant();
@@ -85,7 +86,7 @@ public class Reader
     {
         if (Status == ReaderStatus.Inactive)
         {
-            throw new InvalidOperationException("Reader is already inactive");
+            throw new ConflictException("Reader is already inactive");
         }
 
         Status = ReaderStatus.Inactive;

@@ -70,15 +70,8 @@ public class ClubSubscriptionService(
             throw new NotFoundException("Club subscription not found");
         }
 
-        try
-        {
-            subscription.Cancel();
-        }
-        catch (InvalidOperationException exception)
-        {
-            throw new ConflictException(exception.Message);
-        }
-
+        subscription.Cancel();
+        
         await subscriptionRepository.UpdateAsync(subscription);
     }
 }

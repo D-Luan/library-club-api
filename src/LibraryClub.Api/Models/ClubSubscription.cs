@@ -1,4 +1,5 @@
 ﻿using LibraryClub.Api.Enums;
+using LibraryClub.Api.Exceptions;
 
 namespace LibraryClub.Api.Models;
 
@@ -31,22 +32,22 @@ public class ClubSubscription
     {
         if (id == Guid.Empty)
         {
-            throw new ArgumentException("Club subscription id cannot be empty");
+            throw new DomainValidationException("Club subscription id cannot be empty");
         }
 
         if (createdAt == default)
         {
-            throw new ArgumentException("Club subscription creation date cannot be empty");
+            throw new DomainValidationException("Club subscription creation date cannot be empty");
         }
 
         if (status == ClubSubscriptionStatus.Active && canceledAt is not null)
         {
-            throw new ArgumentException("Active club subscription cannot have cancellation date");
+            throw new DomainValidationException("Active club subscription cannot have cancellation date");
         }
 
         if (status == ClubSubscriptionStatus.Canceled && canceledAt is null)
         {
-            throw new ArgumentException("Canceled club subscription must have cancellation date");
+            throw new DomainValidationException("Canceled club subscription must have cancellation date");
         }
 
         Id = id;
@@ -73,7 +74,7 @@ public class ClubSubscription
     {
         if (Status == ClubSubscriptionStatus.Canceled)
         {
-            throw new InvalidOperationException("Club subscription is already canceled");
+            throw new ConflictException("Club subscription is already canceled");
         }
 
         Status = ClubSubscriptionStatus.Canceled;
@@ -84,7 +85,7 @@ public class ClubSubscription
     {
         if (readerId == Guid.Empty)
         {
-            throw new ArgumentException("Reader id cannot be empty");
+            throw new DomainValidationException("Reader id cannot be empty");
         }
 
         ReaderId = readerId;
@@ -94,7 +95,7 @@ public class ClubSubscription
     {
         if (readingClubId == Guid.Empty)
         {
-            throw new ArgumentException("Reading club id cannot be empty");
+            throw new DomainValidationException("Reading club id cannot be empty");
         }
 
         ReadingClubId = readingClubId;
