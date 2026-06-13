@@ -43,6 +43,6 @@ CREATE TABLE ClubSubscriptions (
     CONSTRAINT CK_ClubSubscriptions_Status CHECK (Status IN ('Active', 'Canceled'))
 );
 
-CREATE UNIQUE INDEX UX_ClubSubscriptions_Active
+CREATE UNIQUE INDEX UX_ClubSubscriptions_Reader_Club_Active
 ON ClubSubscriptions (ReaderId, ReadingClubId)
 WHERE Status = 'Active';
