@@ -4,6 +4,7 @@ using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
 using NSubstitute;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LibraryClub.Tests.UnitTests;
 
@@ -14,7 +15,7 @@ public class ReadingClubServiceTests
     public async Task CreateAsync_ShouldCreateReadingClub()
     {
         var repository = Substitute.For<IReadingClubRepository>();
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         var readingClub = await service.CreateAsync("Fantasy Club", "Fantasy books", "Fantasy");
 
@@ -40,7 +41,7 @@ public class ReadingClubServiceTests
 
         repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
 
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         var result = await service.GetByIdAsync(readingClub.Id);
 
@@ -58,7 +59,7 @@ public class ReadingClubServiceTests
 
         repository.GetByIdAsync(id).Returns((ReadingClub?)null);
 
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         var result = await service.GetByIdAsync(id);
 
@@ -75,7 +76,7 @@ public class ReadingClubServiceTests
 
         repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
 
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         await service.InactivateAsync(readingClub.Id);
 
@@ -94,7 +95,7 @@ public class ReadingClubServiceTests
 
         repository.GetByIdAsync(id).Returns((ReadingClub?)null);
 
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() => service.InactivateAsync(id));
 
@@ -111,7 +112,7 @@ public class ReadingClubServiceTests
 
         repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
 
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         await service.ArchiveAsync(readingClub.Id);
 
@@ -130,7 +131,7 @@ public class ReadingClubServiceTests
 
         repository.GetByIdAsync(id).Returns((ReadingClub?)null);
 
-        var service = new ReadingClubService(repository);
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() => service.ArchiveAsync(id));
 

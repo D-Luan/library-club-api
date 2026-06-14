@@ -4,6 +4,7 @@ using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
 using NSubstitute;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LibraryClub.Tests.UnitTests;
 
@@ -20,7 +21,7 @@ public class ReaderServiceTests
             .ExistsByEmailAsync("john.doe@email.com")
             .Returns(false);
 
-        var service = new ReaderService(repository);
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
 
         // Act
         var reader = await service.CreateAsync("John Doe", "john.doe@email.com");
@@ -49,7 +50,7 @@ public class ReaderServiceTests
             .ExistsByEmailAsync("john.doe@email.com")
             .Returns(true);
 
-        var service = new ReaderService(repository);
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
 
         // Act
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
@@ -73,7 +74,7 @@ public class ReaderServiceTests
             .GetByIdAsync(reader.Id)
             .Returns(reader);
 
-        var service = new ReaderService(repository);
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
 
         // Act
         var result = await service.GetByIdAsync(reader.Id);
@@ -97,7 +98,7 @@ public class ReaderServiceTests
             .GetByIdAsync(readerId)
             .Returns((Reader?)null);
 
-        var service = new ReaderService(repository);
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
 
         // Act
         var result = await service.GetByIdAsync(readerId);
@@ -119,7 +120,7 @@ public class ReaderServiceTests
             .GetByIdAsync(reader.Id)
             .Returns(reader);
 
-        var service = new ReaderService(repository);
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
 
         // Act
         await service.InactivateAsync(reader.Id);
@@ -144,7 +145,7 @@ public class ReaderServiceTests
             .GetByIdAsync(readerId)
             .Returns((Reader?)null);
 
-        var service = new ReaderService(repository);
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
 
         // Act
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>

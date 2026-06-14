@@ -4,6 +4,7 @@ using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
 using NSubstitute;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LibraryClub.Tests.UnitTests;
 
@@ -27,7 +28,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var subscription = await service.CreateAsync(reader.Id, readingClub.Id);
 
@@ -55,7 +57,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.CreateAsync(readerId, Guid.NewGuid()));
@@ -81,7 +84,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.CreateAsync(reader.Id, readingClubId));
@@ -109,7 +113,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.CreateAsync(reader.Id, readingClub.Id));
@@ -134,7 +139,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.CreateAsync(reader.Id, readingClub.Id));
@@ -159,7 +165,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.CreateAsync(reader.Id, readingClub.Id));
@@ -182,7 +189,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         await service.CancelAsync(subscription.Id);
 
@@ -206,7 +214,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.CancelAsync(id));
@@ -229,7 +238,8 @@ public class ClubSubscriptionServiceTests
         var service = new ClubSubscriptionService(
             subscriptionRepository,
             readerRepository,
-            readingClubRepository);
+            readingClubRepository,
+            NullLogger<ClubSubscriptionService>.Instance);
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.CancelAsync(subscription.Id));
