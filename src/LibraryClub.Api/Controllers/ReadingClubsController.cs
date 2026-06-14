@@ -13,6 +13,8 @@ public sealed class ReadingClubsController(
     IValidator<CreateReadingClubRequest> createReadingClubValidator) : ControllerBase
 {
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ReadingClubResponse))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ReadingClubResponse>> Create(CreateReadingClubRequest request)
     {
         var validationResult = await createReadingClubValidator.ValidateAsync(request);
@@ -39,6 +41,8 @@ public sealed class ReadingClubsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadingClubResponse))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ReadingClubResponse>> GetById(Guid id)
     {
         var readingClub = await readingClubService.GetByIdAsync(id);
@@ -49,6 +53,9 @@ public sealed class ReadingClubsController(
     }
 
     [HttpPatch("{id:guid}/inactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Inactivate(Guid id)
     {
         await readingClubService.InactivateAsync(id);
@@ -57,6 +64,9 @@ public sealed class ReadingClubsController(
     }
 
     [HttpPatch("{id:guid}/archive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Archive(Guid id)
     {
         await readingClubService.ArchiveAsync(id);

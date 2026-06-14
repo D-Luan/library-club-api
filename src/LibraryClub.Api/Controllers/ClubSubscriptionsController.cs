@@ -13,6 +13,10 @@ public sealed class ClubSubscriptionsController(
     IValidator<CreateClubSubscriptionRequest> createSubscriptionValidator) : ControllerBase
 {
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ClubSubscriptionResponse))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ClubSubscriptionResponse>> Create(CreateClubSubscriptionRequest
     request)
     {
@@ -38,6 +42,8 @@ public sealed class ClubSubscriptionsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ClubSubscriptionResponse))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ClubSubscriptionResponse>> GetById(Guid id)
     {
         var subscription = await subscriptionService.GetByIdAsync(id);
@@ -51,6 +57,9 @@ public sealed class ClubSubscriptionsController(
     }
 
     [HttpPatch("{id:guid}/cancel")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Cancel(Guid id)
     {
         await subscriptionService.CancelAsync(id);

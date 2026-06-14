@@ -13,6 +13,9 @@ public sealed class ReadersController(
     IValidator<CreateReaderRequest> createReaderValidator) : ControllerBase
 {
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ReaderResponse))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ReaderResponse>> Create(CreateReaderRequest request)
     {
         var validationResult = await createReaderValidator.ValidateAsync(request);
@@ -36,6 +39,8 @@ public sealed class ReadersController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReaderResponse))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ReaderResponse>> GetById(Guid id)
     {
         var reader = await readerService.GetByIdAsync(id);
@@ -49,6 +54,9 @@ public sealed class ReadersController(
     }
 
     [HttpPatch("{id:guid}/inactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Inactivate(Guid id)
     {
         await readerService.InactivateAsync(id);
