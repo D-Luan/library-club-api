@@ -8,10 +8,15 @@ namespace LibraryClub.Api.Services;
 public class ClubSubscriptionService(
     IClubSubscriptionRepository subscriptionRepository,
     IReaderRepository readerRepository,
-    IReadingClubRepository readingClubRepository) : IClubSubscriptionService
+    IReadingClubRepository readingClubRepository,
+    ILogger<ClubSubscriptionService> logger) : IClubSubscriptionService
 {
     public async Task<ClubSubscription> CreateAsync(Guid readerId, Guid readingClubId)
     {
+        logger.LogInformation("Creating club subscription for reader {ReaderId} and reading club {ReadingClubId}",
+              readerId,
+              readingClubId);
+
         var reader = await readerRepository.GetByIdAsync(readerId);
 
         if (reader is null)
@@ -41,8 +46,7 @@ public class ClubSubscriptionService(
             throw new ConflictException("Reading club is archived");
         }
 
-        var activeSubscriptionExists = await subscriptionRepository.ExistsActiveAsync(readerId,
-        readingClubId);
+        var activeSubscriptionExists = await subscriptionRepository.ExistsActiveAsync(readerId, readingClubId);
 
         if (activeSubscriptionExists)
         {
@@ -52,6 +56,11 @@ public class ClubSubscriptionService(
         var subscription = new ClubSubscription(readerId, readingClubId);
 
         await subscriptionRepository.AddAsync(subscription);
+
+        logger.LogInformation("Club subscription {ClubSubscriptionId} created successfully for reader {ReaderId} and reading club {ReadingClubId}",
+            subscription.Id,
+            readerId,
+            readingClubId);
 
         return subscription;
     }
@@ -63,6 +72,8 @@ public class ClubSubscriptionService(
 
     public async Task CancelAsync(Guid id)
     {
+        logger.LogInformation("Canceling club subscription {ClubSubscriptionId}", id);
+
         var subscription = await subscriptionRepository.GetByIdAsync(id);
 
         if (subscription is null)
@@ -71,7 +82,9 @@ public class ClubSubscriptionService(
         }
 
         subscription.Cancel();
-        
+
         await subscriptionRepository.UpdateAsync(subscription);
+
+        logger.LogInformation("Club subscription {ClubSubscriptionId} canceled successfully", id);
     }
 }

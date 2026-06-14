@@ -4,10 +4,14 @@ using LibraryClub.Api.Repositories;
 
 namespace LibraryClub.Api.Services;
 
-public class ReaderService(IReaderRepository readerRepository) : IReaderService
+public class ReaderService(
+    IReaderRepository readerRepository,
+    ILogger<ReaderService> logger) : IReaderService
 {
     public async Task<Reader> CreateAsync(string name, string email)
     {
+        logger.LogInformation("Creating reader...");
+
         var emailAlreadyExists = await readerRepository.ExistsByEmailAsync(email);
 
         if (emailAlreadyExists)
@@ -19,6 +23,8 @@ public class ReaderService(IReaderRepository readerRepository) : IReaderService
 
         await readerRepository.AddAsync(reader);
 
+        logger.LogInformation("Reader {ReaderId} created successfully", reader.Id);
+
         return reader;
     }
 
@@ -29,6 +35,8 @@ public class ReaderService(IReaderRepository readerRepository) : IReaderService
 
     public async Task InactivateAsync(Guid id)
     {
+        logger.LogInformation("Inactivating reader {ReaderId}", id);
+
         var reader = await readerRepository.GetByIdAsync(id);
 
         if (reader is null)
@@ -39,5 +47,7 @@ public class ReaderService(IReaderRepository readerRepository) : IReaderService
         reader.Inactivate();
 
         await readerRepository.UpdateAsync(reader);
+
+        logger.LogInformation("Reader {ReaderId} inactivated successfully", id);
     }
 }
