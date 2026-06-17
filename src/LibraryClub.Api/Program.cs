@@ -4,65 +4,98 @@ using LibraryClub.Api.Services;
 using FluentValidation;
 using LibraryClub.Api.Validators;
 using LibraryClub.Api.Middlewares;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+      .WriteTo.Console()
+      .CreateBootstrapLogger();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-if (string.IsNullOrWhiteSpace(connectionString))
+try
 {
-    throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
-}
+    var builder = WebApplication.CreateBuilder(args);
 
-var applicationInsightsConnectionString =
-     builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
-     ?? builder.Configuration["ApplicationInsights:ConnectionString"];
-
-if (!builder.Environment.IsEnvironment("Testing") &&
-    !string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
-{
-    builder.Services.AddApplicationInsightsTelemetry(options =>
+    builder.Host.UseSerilog((context, services, configuration) =>
     {
-        options.ConnectionString = applicationInsightsConnectionString;
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", "LibraryClub.Api")
+            .Enrich.WithProperty("EnvironmentName", context.HostingEnvironment.EnvironmentName);
     });
-}
 
-builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
-builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
-builder.Services.AddScoped<IReadingClubRepository, ReadingClubRepository>();
-builder.Services.AddScoped<IClubSubscriptionRepository, ClubSubscriptionRepository>();
-builder.Services.AddScoped<IReaderService, ReaderService>();
-builder.Services.AddScoped<IReadingClubService, ReadingClubService>();
-builder.Services.AddScoped<IClubSubscriptionService, ClubSubscriptionService>();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-var app = builder.Build();
-
-var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Scripts");
-
-DatabaseMigrator.Migrate(connectionString, scriptsPath);
-
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    if (string.IsNullOrWhiteSpace(connectionString))
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "LibraryClub API v1");
-    });
+        throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+    }
+
+    var applicationInsightsConnectionString =
+         builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+         ?? builder.Configuration["ApplicationInsights:ConnectionString"];
+
+    if (!builder.Environment.IsEnvironment("Testing") &&
+        !string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
+    {
+        builder.Services.AddApplicationInsightsTelemetry(options =>
+        {
+            options.ConnectionString = applicationInsightsConnectionString;
+        });
+    }
+
+    builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
+
+    builder.Services.AddScoped<IReaderRepository, ReaderRepository>();
+    builder.Services.AddScoped<IReadingClubRepository, ReadingClubRepository>();
+    builder.Services.AddScoped<IClubSubscriptionRepository, ClubSubscriptionRepository>();
+
+    builder.Services.AddScoped<IReaderService, ReaderService>();
+    builder.Services.AddScoped<IReadingClubService, ReadingClubService>();
+    builder.Services.AddScoped<IClubSubscriptionService, ClubSubscriptionService>();
+
+    builder.Services.AddValidatorsFromAssemblyContaining<CreateReaderRequestValidator>();
+
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+    builder.Services.AddProblemDetails();
+
+    builder.Services.AddControllers();
+    builder.Services.AddSwaggerGen();
+
+    var app = builder.Build();
+
+    var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Scripts");
+
+    DatabaseMigrator.Migrate(connectionString, scriptsPath);
+
+    if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "LibraryClub API v1");
+        });
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseSerilogRequestLogging();
+
+    app.UseAuthorization();
+
+    app.UseExceptionHandler();
+
+    app.MapControllers();
+
+    app.Run();
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.UseExceptionHandler();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception exception)
+{
+    Log.Fatal(exception, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 public partial class Program { }
