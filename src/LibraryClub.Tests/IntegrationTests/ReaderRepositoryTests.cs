@@ -82,4 +82,69 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
         Assert.Equal("Ana Maria Lima", updatedReader.Name);
         Assert.Equal(ReaderStatus.Inactive, updatedReader.Status);
     }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnFirstPage_WhenReadersExist()
+    {
+        var readers = await AddReadersAsync();
+
+        var result = await _repository.GetPagedAsync(page: 1, pageSize: 2);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(2, result.Items.Count);
+
+        Assert.Equal(readers[2].Id, result.Items[0].Id);
+        Assert.Equal(readers[1].Id, result.Items[1].Id);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnSecondPage_WhenReadersExist()
+    {
+        var readers = await AddReadersAsync();
+
+        var result = await _repository.GetPagedAsync(page: 2, pageSize: 2);
+
+        Assert.Equal(2, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+
+        var reader = Assert.Single(result.Items);
+        Assert.Equal(readers[0].Id, reader.Id);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnEmptyPage_WhenReadersDoNotExist()
+    {
+        var result = await _repository.GetPagedAsync(page: 1, pageSize: 10);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(10, result.PageSize);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, result.TotalPages);
+        Assert.Empty(result.Items);
+    }
+
+    private async Task<List<Reader>> AddReadersAsync()
+    {
+        var readers = new List<Reader>();
+
+        for (var index = 1; index <= 3; index++)
+        {
+            var reader = new Reader(
+                $"Reader {index}",
+                $"reader.{index}.{Guid.NewGuid():N}@email.com");
+
+            await _repository.AddAsync(reader);
+
+            readers.Add(reader);
+
+            await Task.Delay(10);
+        }
+
+        return readers;
+    }
 }

@@ -1,10 +1,12 @@
-﻿using LibraryClub.Api.Enums;
+﻿using LibraryClub.Api.Common;
+using LibraryClub.Api.Enums;
 using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
-using NSubstitute;
+using LibraryClub.Api.Common;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 
 namespace LibraryClub.Tests.UnitTests;
 
@@ -156,5 +158,40 @@ public class ReaderServiceTests
 
         await repository.Received(1).GetByIdAsync(readerId);
         await repository.DidNotReceive().UpdateAsync(Arg.Any<Reader>());
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnPagedReaders()
+    {
+        // Arrange
+        var repository = Substitute.For<IReaderRepository>();
+
+        var readers = new List<Reader>
+        {
+            new("Reader One", "reader.one@email.com"),
+            new("Reader Two", "reader.two@email.com")
+        };
+
+        var pagedResult = new PagedResult<Reader>(
+            readers,
+            Page: 1,
+            PageSize: 2,
+            TotalCount: 3);
+
+        repository.GetPagedAsync(1, 2).Returns(pagedResult);
+
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
+
+        // Act
+        var result = await service.GetPagedAsync(1, 2);
+
+        // Assert
+        Assert.Equal(1, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(2, result.Items.Count);
+
+        await repository.Received(1).GetPagedAsync(1, 2);
     }
 }
