@@ -2,6 +2,7 @@
 using LibraryClub.Api.DTOs;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Services;
+using LibraryClub.Api.Validators;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LibraryClub.Api.Controllers;
@@ -10,7 +11,8 @@ namespace LibraryClub.Api.Controllers;
 [Route("api/readers")]
 public sealed class ReadersController(
     IReaderService readerService,
-    IValidator<CreateReaderRequest> createReaderValidator) : ControllerBase
+    IValidator<CreateReaderRequest> createReaderValidator,
+    IValidator<PagedRequest> pagedRequestValidator) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ReaderResponse))]
@@ -62,6 +64,32 @@ public sealed class ReadersController(
         await readerService.InactivateAsync(id);
 
         return NoContent();
+    }
+
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResponse<ReaderResponse>))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResponse<ReaderResponse>>> GetAll([FromQuery] PagedRequest request)
+    {
+        var validationResult = await pagedRequestValidator.ValidateAsync(request);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors.Select(error => new
+            {
+                error.PropertyName,
+                error.ErrorMessage
+            }));
+        }
+
+        var readers = await readerService.GetPagedAsync(request.Page, request.PageSize);
+
+        return Ok(new PagedResponse<ReaderResponse>(
+            readers.Items.Select(MapToResponse).ToList(),
+            readers.Page,
+            readers.PageSize,
+            readers.TotalCount)
+        );
     }
 
     private static ReaderResponse MapToResponse(Reader reader)

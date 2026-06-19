@@ -1,4 +1,5 @@
-﻿using LibraryClub.Api.Exceptions;
+﻿using LibraryClub.Api.Common;
+using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 
@@ -49,5 +50,12 @@ public class ReaderService(
         await readerRepository.UpdateAsync(reader);
 
         logger.LogInformation("Reader {ReaderId} inactivated successfully", id);
+    }
+
+    public async Task<PagedResult<Reader>> GetPagedAsync(int page, int pageSize)
+    {
+        logger.LogInformation("Listing readers page {Page} pageSize {PageSize}", page, pageSize);
+
+        return await readerRepository.GetPagedAsync(page, pageSize);
     }
 }

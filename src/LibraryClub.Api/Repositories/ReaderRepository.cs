@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using LibraryClub.Api.Common;
 using LibraryClub.Api.Data;
 using LibraryClub.Api.Enums;
 using LibraryClub.Api.Models;
@@ -37,7 +38,7 @@ public class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReader
               """;
 
         var record = await connection.QuerySingleOrDefaultAsync<ReaderRecord>(
-            sql, 
+            sql,
             new { Id = id });
 
         return record is null ? null : MapToReader(record);
@@ -101,6 +102,39 @@ public class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReader
         {
             throw new InvalidOperationException("Reader not found");
         }
+    }
+
+    public async Task<PagedResult<Reader>> GetPagedAsync(int page, int pageSize)
+    {
+        using var connection = connectionFactory.CreateConnection();
+
+        var offset = (page - 1) * pageSize;
+
+        const string sql = """
+            SELECT COUNT(*)
+            FROM Readers;
+
+            SELECT Id, Name, Email, Status, CreatedAt
+            FROM Readers
+            ORDER BY CreatedAt DESC, Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+            """;
+
+        using var result = await connection.QueryMultipleAsync(sql, new
+        {
+            Offset = offset,
+            PageSize = pageSize
+        });
+
+        var totalCount = await result.ReadSingleAsync<int>();
+        var records = (await result.ReadAsync<ReaderRecord>()).ToList();
+
+        return new PagedResult<Reader>(
+            records.Select(MapToReader).ToList(),
+            page,
+            pageSize,
+            totalCount
+        );
     }
 
     private static Reader MapToReader(ReaderRecord record)

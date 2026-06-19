@@ -23,10 +23,10 @@ public class Reader
     }
 
     private Reader(
-        Guid id, 
-        string name, 
-        string email, 
-        ReaderStatus status, 
+        Guid id,
+        string name,
+        string email,
+        ReaderStatus status,
         DateTime createdAt)
     {
         if (id == Guid.Empty)
@@ -48,10 +48,10 @@ public class Reader
     }
 
     public static Reader Restore(
-        Guid id, 
-        string name, 
-        string email, 
-        ReaderStatus status, 
+        Guid id,
+        string name,
+        string email,
+        ReaderStatus status,
         DateTime createdAt)
     {
         return new Reader(id, name, email, status, createdAt);
