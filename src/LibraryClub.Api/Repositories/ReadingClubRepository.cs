@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using LibraryClub.Api.Common;
 using LibraryClub.Api.Data;
 using LibraryClub.Api.Enums;
 using LibraryClub.Api.Models;
@@ -68,6 +69,38 @@ public class ReadingClubRepository(ISqlConnectionFactory connectionFactory) : IR
         {
             throw new InvalidOperationException("Reading club not found");
         }
+    }
+
+    public async Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize)
+    {
+        using var connection = connectionFactory.CreateConnection();
+
+        var offset = (page - 1) * pageSize;
+
+        const string sql = """
+            SELECT COUNT(*)
+            FROM ReadingClubs;
+
+            SELECT Id, Name, Description, Genre, Status, CreatedAt
+            FROM ReadingClubs
+            ORDER BY CreatedAt DESC, Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+            """;
+
+        using var result = await connection.QueryMultipleAsync(sql, new
+        {
+            Offset = offset,
+            PageSize = pageSize
+        });
+
+        var totalCount = await result.ReadSingleAsync<int>();
+        var records = (await result.ReadAsync<ReadingClubRecord>()).ToList();
+
+        return new PagedResult<ReadingClub>(
+            records.Select(MapToReadingClub).ToList(),
+            page,
+            pageSize,
+            totalCount);
     }
 
     private static ReadingClub MapToReadingClub(ReadingClubRecord record)

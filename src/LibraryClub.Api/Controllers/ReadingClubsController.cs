@@ -10,7 +10,8 @@ namespace LibraryClub.Api.Controllers;
 [Route("api/reading-clubs")]
 public sealed class ReadingClubsController(
     IReadingClubService readingClubService,
-    IValidator<CreateReadingClubRequest> createReadingClubValidator) : ControllerBase
+    IValidator<CreateReadingClubRequest> createReadingClubValidator,
+    IValidator<PagedRequest> pagedRequestValidator) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ReadingClubResponse))]
@@ -72,6 +73,32 @@ public sealed class ReadingClubsController(
         await readingClubService.ArchiveAsync(id);
 
         return NoContent();
+    }
+
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResponse<ReadingClubResponse>))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResponse<ReadingClubResponse>>> GetAll([FromQuery] PagedRequest request)
+    {
+        var validationResult = await pagedRequestValidator.ValidateAsync(request);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors.Select(error => new
+            {
+                error.PropertyName,
+                error.ErrorMessage
+            }));
+        }
+
+        var readingClubs = await readingClubService.GetPagedAsync(request.Page, request.PageSize);
+
+        return Ok(new PagedResponse<ReadingClubResponse>(
+            readingClubs.Items.Select(MapToResponse).ToList(),
+            readingClubs.Page,
+            readingClubs.PageSize,
+            readingClubs.TotalCount)
+        );
     }
 
     private static ReadingClubResponse MapToResponse(ReadingClub readingClub)

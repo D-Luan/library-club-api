@@ -1,4 +1,5 @@
-﻿using LibraryClub.Api.Exceptions;
+﻿using LibraryClub.Api.Common;
+using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 
@@ -60,5 +61,12 @@ public class ReadingClubService(
         await readingClubRepository.UpdateAsync(readingClub);
 
         logger.LogInformation("Reading club {ReadingClubId} archived successfully", id);
+    }
+
+    public async Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize)
+    {
+        logger.LogInformation("Listing reading clubs page {Page} pageSize {PageSize}", page, pageSize);
+
+        return await readingClubRepository.GetPagedAsync(page, pageSize);
     }
 }
