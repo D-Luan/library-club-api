@@ -3,6 +3,7 @@ using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
+using LibraryClub.Api.Common;
 using NSubstitute;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -138,5 +139,37 @@ public class ReadingClubServiceTests
         Assert.Equal("Reading club not found", exception.Message);
 
         await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnPagedReadingClubs()
+    {
+        var repository = Substitute.For<IReadingClubRepository>();
+
+        var readingClubs = new List<ReadingClub>
+        {
+            new("Fantasy Club", "Fantasy books", "Fantasy"),
+            new("History Club", "History books", "History")
+        };
+
+        var pagedResult = new PagedResult<ReadingClub>(
+            readingClubs,
+            Page: 1,
+            PageSize: 2,
+            TotalCount: 3);
+
+        repository.GetPagedAsync(1, 2).Returns(pagedResult);
+
+        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+
+        var result = await service.GetPagedAsync(1, 2);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(2, result.Items.Count);
+
+        await repository.Received(1).GetPagedAsync(1, 2);
     }
 }

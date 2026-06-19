@@ -224,4 +224,79 @@ public class ReadingClubsControllerTests(IntegrationTestFixture fixture) : IAsyn
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetAll_ShouldReturnOkWithPagedReadingClubs()
+    {
+        var firstReadingClub = await CreateReadingClubAsync("Reading Club One");
+        await Task.Delay(10);
+
+        var secondReadingClub = await CreateReadingClubAsync("Reading Club Two");
+        await Task.Delay(10);
+
+        var thirdReadingClub = await CreateReadingClubAsync("Reading Club Three");
+
+        var response = await _client.GetAsync("/api/reading-clubs?page=1&pageSize=2");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<PagedResponse<ReadingClubResponse>>();
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(2, result.Items.Count);
+
+        Assert.Equal(thirdReadingClub.Id, result.Items[0].Id);
+        Assert.Equal(secondReadingClub.Id, result.Items[1].Id);
+    }
+
+    [Fact]
+    public async Task GetAll_ShouldReturnOkWithDefaultPagination()
+    {
+        await CreateReadingClubAsync("Reading Club One");
+
+        var response = await _client.GetAsync("/api/reading-clubs");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<PagedResponse<ReadingClubResponse>>();
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.Page);
+        Assert.Equal(10, result.PageSize);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(1, result.TotalPages);
+
+        var readingClub = Assert.Single(result.Items);
+        Assert.Equal("Reading Club One", readingClub.Name);
+    }
+
+    [Fact]
+    public async Task GetAll_ShouldReturnBadRequest_WhenPageIsInvalid()
+    {
+        var response = await _client.GetAsync("/api/reading-clubs?page=0&pageSize=10");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAll_ShouldReturnBadRequest_WhenPageSizeIsInvalid()
+    {
+        var response = await _client.GetAsync("/api/reading-clubs?page=1&pageSize=101");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    private async Task<ReadingClubResponse> CreateReadingClubAsync(string name)
+    {
+        var response = await _client.PostAsJsonAsync("/api/reading-clubs",
+            new CreateReadingClubRequest(name, "Test description", "Test genre"));
+
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<ReadingClubResponse>())!;
+    }
 }

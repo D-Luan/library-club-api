@@ -133,4 +133,70 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
         Assert.Equal("New description", updatedReadingClub.Description);
         Assert.Equal("New genre", updatedReadingClub.Genre);
     }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnFirstPage_WhenReadingClubsExist()
+    {
+        var readingClubs = await AddReadingClubsAsync();
+
+        var result = await _repository.GetPagedAsync(page: 1, pageSize: 2);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(2, result.Items.Count);
+
+        Assert.Equal(readingClubs[2].Id, result.Items[0].Id);
+        Assert.Equal(readingClubs[1].Id, result.Items[1].Id);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnSecondPage_WhenReadingClubsExist()
+    {
+        var readingClubs = await AddReadingClubsAsync();
+
+        var result = await _repository.GetPagedAsync(page: 2, pageSize: 2);
+
+        Assert.Equal(2, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+
+        var readingClub = Assert.Single(result.Items);
+        Assert.Equal(readingClubs[0].Id, readingClub.Id);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_ShouldReturnEmptyPage_WhenReadingClubsDoNotExist()
+    {
+        var result = await _repository.GetPagedAsync(page: 1, pageSize: 10);
+
+        Assert.Equal(1, result.Page);
+        Assert.Equal(10, result.PageSize);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, result.TotalPages);
+        Assert.Empty(result.Items);
+    }
+
+    private async Task<List<ReadingClub>> AddReadingClubsAsync()
+    {
+        var readingClubs = new List<ReadingClub>();
+
+        for (var index = 1; index <= 3; index++)
+        {
+            var readingClub = new ReadingClub(
+                $"Reading Club {index}",
+                $"Description {index}",
+                $"Genre {index}");
+
+            await _repository.AddAsync(readingClub);
+
+            readingClubs.Add(readingClub);
+
+            await Task.Delay(10);
+        }
+
+        return readingClubs;
+    }
 }
