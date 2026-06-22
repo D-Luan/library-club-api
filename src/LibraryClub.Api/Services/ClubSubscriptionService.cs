@@ -1,4 +1,5 @@
-﻿using LibraryClub.Api.Enums;
+﻿using LibraryClub.Api.Common;
+using LibraryClub.Api.Enums;
 using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
@@ -86,5 +87,39 @@ public class ClubSubscriptionService(
         await subscriptionRepository.UpdateAsync(subscription);
 
         logger.LogInformation("Club subscription {ClubSubscriptionId} canceled successfully", id);
+    }
+
+    public async Task<PagedResult<ClubSubscription>> GetByReaderAsync(Guid readerId, int page, int pageSize)
+    {
+        logger.LogInformation("Listing subscriptions for reader {ReaderId} page {Page} pageSize {PageSize}",
+            readerId,
+            page,
+            pageSize);
+
+        var reader = await readerRepository.GetByIdAsync(readerId);
+
+        if (reader is null)
+        {
+            throw new NotFoundException("Reader not found");
+        }
+
+        return await subscriptionRepository.GetByReaderAsync(readerId, page, pageSize);
+    }
+
+    public async Task<PagedResult<ClubSubscription>> GetByReadingClubAsync(Guid readingClubId, int page, int pageSize)
+    {
+        logger.LogInformation("Listing subscriptions for reading club {ReadingClubId} page {Page} pageSize {PageSize}",
+            readingClubId,
+            page,
+            pageSize);
+
+        var readingClub = await readingClubRepository.GetByIdAsync(readingClubId);
+
+        if (readingClub is null)
+        {
+            throw new NotFoundException("Reading club not found");
+        }
+
+        return await subscriptionRepository.GetByReadingClubAsync(readingClubId, page, pageSize);
     }
 }

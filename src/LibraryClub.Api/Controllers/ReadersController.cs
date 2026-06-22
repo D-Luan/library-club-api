@@ -12,6 +12,7 @@ namespace LibraryClub.Api.Controllers;
 public sealed class ReadersController(
     IReaderService readerService,
     IValidator<CreateReaderRequest> createReaderValidator,
+    IClubSubscriptionService subscriptionService,
     IValidator<PagedRequest> pagedRequestValidator) : ControllerBase
 {
     [HttpPost]
@@ -89,6 +90,47 @@ public sealed class ReadersController(
             readers.Page,
             readers.PageSize,
             readers.TotalCount)
+        );
+    }
+
+    [HttpGet("{readerId:guid}/subscriptions")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PagedResponse<ClubSubscriptionResponse>))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResponse<ClubSubscriptionResponse>>> GetSubscriptions(
+        Guid readerId, [FromQuery] PagedRequest request)
+    {
+        var validationResult = await pagedRequestValidator.ValidateAsync(request);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors.Select(error => new
+            {
+                error.PropertyName,
+                error.ErrorMessage
+            }));
+        }
+
+        var subscriptions = await subscriptionService.GetByReaderAsync(readerId, request.Page,
+        request.PageSize);
+
+        return Ok(new PagedResponse<ClubSubscriptionResponse>(
+            subscriptions.Items.Select(MapSubscriptionToResponse).ToList(),
+            subscriptions.Page,
+            subscriptions.PageSize,
+            subscriptions.TotalCount)
+        );
+    }
+
+    private static ClubSubscriptionResponse MapSubscriptionToResponse(ClubSubscription subscription)
+    {
+        return new ClubSubscriptionResponse(
+            subscription.Id,
+            subscription.ReaderId,
+            subscription.ReadingClubId,
+            subscription.Status.ToString(),
+            subscription.CreatedAt,
+            subscription.CanceledAt
         );
     }
 

@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using LibraryClub.Api.Common;
 using LibraryClub.Api.Data;
 using LibraryClub.Api.Enums;
 using LibraryClub.Api.Models;
@@ -86,6 +87,78 @@ public class ClubSubscriptionRepository(ISqlConnectionFactory connectionFactory)
         {
             throw new InvalidOperationException("Club subscription not found");
         }
+    }
+
+    public async Task<PagedResult<ClubSubscription>> GetByReaderAsync(Guid readerId, int page, int pageSize)
+    {
+        using var connection = connectionFactory.CreateConnection();
+
+        var offset = (page - 1) * pageSize;
+
+        const string sql = """
+            SELECT COUNT(*)
+            FROM ClubSubscriptions
+            WHERE ReaderId = @ReaderId;
+
+            SELECT Id, ReaderId, ReadingClubId, Status, CreatedAt, CanceledAt
+            FROM ClubSubscriptions
+            WHERE ReaderId = @ReaderId
+            ORDER BY CreatedAt DESC, Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+            """;
+
+        using var result = await connection.QueryMultipleAsync(sql, new
+        {
+            ReaderId = readerId,
+            Offset = offset,
+            PageSize = pageSize
+        });
+
+        var totalCount = await result.ReadSingleAsync<int>();
+        var records = (await result.ReadAsync<ClubSubscriptionRecord>()).ToList();
+
+        return new PagedResult<ClubSubscription>(
+            records.Select(MapToClubSubscription).ToList(),
+            page,
+            pageSize,
+            totalCount
+        );
+    }
+
+    public async Task<PagedResult<ClubSubscription>> GetByReadingClubAsync(Guid readingClubId, int page, int pageSize)
+    {
+        using var connection = connectionFactory.CreateConnection();
+
+        var offset = (page - 1) * pageSize;
+
+        const string sql = """
+            SELECT COUNT(*)
+            FROM ClubSubscriptions
+            WHERE ReadingClubId = @ReadingClubId;
+
+            SELECT Id, ReaderId, ReadingClubId, Status, CreatedAt, CanceledAt
+            FROM ClubSubscriptions
+            WHERE ReadingClubId = @ReadingClubId
+            ORDER BY CreatedAt DESC, Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+            """;
+
+        using var result = await connection.QueryMultipleAsync(sql, new
+        {
+            ReadingClubId = readingClubId,
+            Offset = offset,
+            PageSize = pageSize
+        });
+
+        var totalCount = await result.ReadSingleAsync<int>();
+        var records = (await result.ReadAsync<ClubSubscriptionRecord>()).ToList();
+
+        return new PagedResult<ClubSubscription>(
+            records.Select(MapToClubSubscription).ToList(),
+            page,
+            pageSize,
+            totalCount
+        );
     }
 
     private static ClubSubscription MapToClubSubscription(ClubSubscriptionRecord record)
