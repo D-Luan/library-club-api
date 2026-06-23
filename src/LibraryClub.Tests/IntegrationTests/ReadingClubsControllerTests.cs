@@ -290,6 +290,117 @@ public class ReadingClubsControllerTests(IntegrationTestFixture fixture) : IAsyn
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task GetSubscriptions_ShouldReturnPagedSubscriptions_WhenReadingClubExists()
+    {
+        var readingClub = await CreateReadingClubAsync("Romance Club");
+
+        var firstReader = await CreateReaderAsync("Thiago Santana");
+        var firstSubscription = await CreateSubscriptionAsync(firstReader.Id, readingClub.Id);
+        await Task.Delay(10);
+
+        var secondReader = await CreateReaderAsync("John Smith");
+        var secondSubscription = await CreateSubscriptionAsync(secondReader.Id, readingClub.Id);
+
+        var cancelResponse = await _client.PatchAsync(
+            $"/api/club-subscriptions/{secondSubscription.Id}/cancel",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, cancelResponse.StatusCode);
+
+        await Task.Delay(10);
+
+        var thirdReader = await CreateReaderAsync("Mary Taylor");
+        var thirdSubscription = await CreateSubscriptionAsync(thirdReader.Id, readingClub.Id);
+
+        var firstPageResponse = await _client.GetAsync(
+            $"/api/reading-clubs/{readingClub.Id}/subscriptions?page=1&pageSize=2");
+
+        Assert.Equal(HttpStatusCode.OK, firstPageResponse.StatusCode);
+
+        var firstPage = await firstPageResponse.Content
+            .ReadFromJsonAsync<PagedResponse<ClubSubscriptionResponse>>();
+
+        Assert.NotNull(firstPage);
+        Assert.Equal(1, firstPage.Page);
+        Assert.Equal(2, firstPage.PageSize);
+        Assert.Equal(3, firstPage.TotalCount);
+        Assert.Equal(2, firstPage.TotalPages);
+        Assert.Equal(2, firstPage.Items.Count);
+
+        Assert.Equal(thirdSubscription.Id, firstPage.Items[0].Id);
+        Assert.Equal(secondSubscription.Id, firstPage.Items[1].Id);
+        Assert.Equal("Canceled", firstPage.Items[1].Status);
+        Assert.NotNull(firstPage.Items[1].CanceledAt);
+
+        var secondPageResponse = await _client.GetAsync(
+            $"/api/reading-clubs/{readingClub.Id}/subscriptions?page=2&pageSize=2");
+
+        Assert.Equal(HttpStatusCode.OK, secondPageResponse.StatusCode);
+
+        var secondPage = await secondPageResponse.Content
+            .ReadFromJsonAsync<PagedResponse<ClubSubscriptionResponse>>();
+
+        Assert.NotNull(secondPage);
+        Assert.Equal(3, secondPage.TotalCount);
+        Assert.Equal(2, secondPage.TotalPages);
+
+        var subscription = Assert.Single(secondPage.Items);
+        Assert.Equal(firstSubscription.Id, subscription.Id);
+        Assert.Equal("Active", subscription.Status);
+    }
+
+    [Fact]
+    public async Task GetSubscriptions_ShouldReturnEmptyPage_WhenReadingClubHasNoSubscriptions()
+    {
+        var readingClub = await CreateReadingClubAsync("Fantasy Club");
+
+        var response = await _client.GetAsync($"/api/reading-clubs/{readingClub.Id}/subscriptions");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content
+            .ReadFromJsonAsync<PagedResponse<ClubSubscriptionResponse>>();
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.Page);
+        Assert.Equal(10, result.PageSize);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, result.TotalPages);
+        Assert.Empty(result.Items);
+    }
+
+    [Fact]
+    public async Task GetSubscriptions_ShouldReturnNotFound_WhenReadingClubDoesNotExist()
+    {
+        var response = await _client.GetAsync(
+            $"/api/reading-clubs/{Guid.NewGuid()}/subscriptions?page=1&pageSize=10");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSubscriptions_ShouldReturnBadRequest_WhenPageIsInvalid()
+    {
+        var readingClub = await CreateReadingClubAsync("Sci-fi Club");
+
+        var response = await _client.GetAsync(
+            $"/api/reading-clubs/{readingClub.Id}/subscriptions?page=0&pageSize=10");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSubscriptions_ShouldReturnBadRequest_WhenPageSizeIsInvalid()
+    {
+        var readingClub = await CreateReadingClubAsync("Drama Club");
+
+        var response = await _client.GetAsync(
+            $"/api/reading-clubs/{readingClub.Id}/subscriptions?page=1&pageSize=101");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private async Task<ReadingClubResponse> CreateReadingClubAsync(string name)
     {
         var response = await _client.PostAsJsonAsync("/api/reading-clubs",
@@ -298,5 +409,25 @@ public class ReadingClubsControllerTests(IntegrationTestFixture fixture) : IAsyn
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<ReadingClubResponse>())!;
+    }
+
+    private async Task<ReaderResponse> CreateReaderAsync(string name)
+    {
+        var response = await _client.PostAsJsonAsync("/api/readers",
+            new CreateReaderRequest(name, $"{Guid.NewGuid():N}@email.com"));
+
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<ReaderResponse>())!;
+    }
+
+    private async Task<ClubSubscriptionResponse> CreateSubscriptionAsync(Guid readerId, Guid readingClubId)
+    {
+        var response = await _client.PostAsJsonAsync("/api/club-subscriptions",
+            new CreateClubSubscriptionRequest(readerId, readingClubId));
+
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<ClubSubscriptionResponse>())!;
     }
 }
