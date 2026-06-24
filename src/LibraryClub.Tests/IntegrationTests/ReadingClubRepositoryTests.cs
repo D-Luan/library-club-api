@@ -120,9 +120,7 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
 
         await _repository.AddAsync(readingClub);
 
-        readingClub.SetName("New Name");
-        readingClub.SetDescription("New description");
-        readingClub.SetGenre("New genre");
+        readingClub.UpdateDetails("New Name", "New description", "New genre");
 
         await _repository.UpdateAsync(readingClub);
 

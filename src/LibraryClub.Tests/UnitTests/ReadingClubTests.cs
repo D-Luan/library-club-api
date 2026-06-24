@@ -145,4 +145,48 @@ public class ReadingClubTests
 
         Assert.Equal("Reading club is already archived", exception.Message);
     }
+
+    [Fact]
+    public void UpdateDetails_ShouldUpdateFields_WhenReadingClubIsActive()
+    {
+        var readingClub = new ReadingClub("Romance Club", "Romance Books", "Romance");
+
+        var createdAt = readingClub.CreatedAt;
+
+        readingClub.UpdateDetails("Drama Club", "Drama Books", "Drama");
+
+        Assert.Equal("Drama Club", readingClub.Name);
+        Assert.Equal("Drama Books", readingClub.Description);
+        Assert.Equal("Drama", readingClub.Genre);
+        Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
+        Assert.Equal(createdAt, readingClub.CreatedAt);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldUpdateFields_WhenReadingClubIsInactive()
+    {
+        var readingClub = new ReadingClub("Science Club", null, "Sci-fi");
+
+        readingClub.Inactivate();
+
+        readingClub.UpdateDetails("Suspense Club", null, "Suspense");
+
+        Assert.Equal("Suspense Club", readingClub.Name);
+        Assert.Null(readingClub.Description);
+        Assert.Equal("Suspense", readingClub.Genre);
+        Assert.Equal(ReadingClubStatus.Inactive, readingClub.Status);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldThrowConflictException_WhenReadingClubIsArchived()
+    {
+        var readingClub = new ReadingClub("Fantasy Club", "Fantasy books", "Fantasy");
+
+        readingClub.Archive();
+
+        var exception = Assert.Throws<ConflictException>(() =>
+            readingClub.UpdateDetails("Science Club", "Science Fiction books", "Sci-fi"));
+
+        Assert.Equal("Archived reading club cannot be updated", exception.Message);
+    }
 }

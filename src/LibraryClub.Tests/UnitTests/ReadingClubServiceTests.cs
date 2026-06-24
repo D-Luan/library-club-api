@@ -172,4 +172,123 @@ public class ReadingClubServiceTests
 
         await repository.Received(1).GetPagedAsync(1, 2);
     }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldUpdateReadingClub_WhenReadingClubExists()
+    {
+        var repository = Substitute.For<IReadingClubRepository>();
+        var readingClub = new ReadingClub(
+            "Coastal Classics",
+            "Monthly discussions on classic literature",
+            "Classics");
+
+        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+
+        var service = new ReadingClubService(
+            repository,
+            NullLogger<ReadingClubService>.Instance);
+
+        await service.UpdateAsync(
+            readingClub.Id,
+            "Mystery Book Circle",
+            "Discussions about mystery novels",
+            "Mystery");
+
+        Assert.Equal("Mystery Book Circle", readingClub.Name);
+        Assert.Equal("Discussions about mystery novels", readingClub.Description);
+        Assert.Equal("Mystery", readingClub.Genre);
+        Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
+
+        await repository.Received(1).GetByIdAsync(readingClub.Id);
+        await repository.Received(1).UpdateAsync(Arg.Is<ReadingClub>(club =>
+            club.Id == readingClub.Id &&
+            club.Name == "Mystery Book Circle" &&
+            club.Description == "Discussions about mystery novels" &&
+            club.Genre == "Mystery" &&
+            club.Status == ReadingClubStatus.Active));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldUpdateInactiveReadingClub_WhenReadingClubExists()
+    {
+        var repository = Substitute.For<IReadingClubRepository>();
+        var readingClub = new ReadingClub(
+            "Science Fiction Society",
+            "Exploring speculative fiction",
+            "Science Fiction");
+
+        readingClub.Inactivate();
+
+        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+
+        var service = new ReadingClubService(
+            repository,
+            NullLogger<ReadingClubService>.Instance);
+
+        await service.UpdateAsync(
+            readingClub.Id,
+            "Historical Fiction Forum",
+            null,
+            "Historical Fiction");
+
+        Assert.Equal("Historical Fiction Forum", readingClub.Name);
+        Assert.Null(readingClub.Description);
+        Assert.Equal("Historical Fiction", readingClub.Genre);
+        Assert.Equal(ReadingClubStatus.Inactive, readingClub.Status);
+
+        await repository.Received(1).UpdateAsync(readingClub);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrowNotFoundException_WhenReadingClubDoesNotExist()
+    {
+        var repository = Substitute.For<IReadingClubRepository>();
+        var readingClubId = Guid.NewGuid();
+
+        repository.GetByIdAsync(readingClubId).Returns((ReadingClub?)null);
+
+        var service = new ReadingClubService(
+            repository,
+            NullLogger<ReadingClubService>.Instance);
+
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.UpdateAsync(
+                readingClubId,
+                "Poetry Reading Circle",
+                "Weekly readings of contemporary poetry",
+                "Poetry"));
+
+        Assert.Equal("Reading club not found", exception.Message);
+
+        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldThrowConflictException_WhenReadingClubIsArchived()
+    {
+        var repository = Substitute.For<IReadingClubRepository>();
+        var readingClub = new ReadingClub(
+            "Fantasy Book Guild",
+            "Discussions about fantasy literature",
+            "Fantasy");
+
+        readingClub.Archive();
+
+        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+
+        var service = new ReadingClubService(
+            repository,
+            NullLogger<ReadingClubService>.Instance);
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.UpdateAsync(
+                readingClub.Id,
+                "Literary Fiction Circle",
+                "Discussions about contemporary literary fiction",
+                "Literary Fiction"));
+
+        Assert.Equal("Archived reading club cannot be updated", exception.Message);
+
+        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+    }
 }

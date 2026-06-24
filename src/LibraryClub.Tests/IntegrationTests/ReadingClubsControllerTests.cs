@@ -401,6 +401,120 @@ public class ReadingClubsControllerTests(IntegrationTestFixture fixture) : IAsyn
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Update_ShouldReturnNoContentAndPersistChanges_WhenRequestIsValid()
+    {
+        var readingClub = await CreateReadingClubAsync("Coastal Classics");
+
+        var request = new UpdateReadingClubRequest(
+            "Mystery Book Circle", 
+            "Discussions about mystery novels",
+            "Mystery");
+
+        var updateResponse = await _client.PutAsJsonAsync($"/api/reading-clubs/{readingClub.Id}", request);
+
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/reading-clubs/{readingClub.Id}");
+        var updatedReadingClub = await getResponse.Content.ReadFromJsonAsync<ReadingClubResponse>();
+
+        Assert.NotNull(updatedReadingClub);
+        Assert.Equal("Mystery Book Circle", updatedReadingClub.Name);
+        Assert.Equal("Discussions about mystery novels", updatedReadingClub.Description);
+        Assert.Equal("Mystery", updatedReadingClub.Genre);
+        Assert.Equal("Active", updatedReadingClub.Status);
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturnNoContent_WhenReadingClubIsInactive()
+    {
+        var readingClub = await CreateReadingClubAsync("Science Fiction Society");
+
+        var inactivateResponse = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/inactivate",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
+
+        var updateResponse = await _client.PutAsJsonAsync(
+            $"/api/reading-clubs/{readingClub.Id}",
+            new UpdateReadingClubRequest("Historical Fiction Forum", null, "Historical Fiction"));
+
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/reading-clubs/{readingClub.Id}");
+        var updatedReadingClub = await getResponse.Content.ReadFromJsonAsync<ReadingClubResponse>();
+
+        Assert.NotNull(updatedReadingClub);
+        Assert.Equal("Historical Fiction Forum", updatedReadingClub.Name);
+        Assert.Null(updatedReadingClub.Description);
+        Assert.Equal("Historical Fiction", updatedReadingClub.Genre);
+        Assert.Equal("Inactive", updatedReadingClub.Status);
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturnBadRequest_WhenRequestIsInvalid()
+    {
+        var readingClub = await CreateReadingClubAsync("Validation Test Club");
+
+        var validRequest = new UpdateReadingClubRequest(
+            "Mystery Book Circle",
+            "Discussions about mystery novels",
+            "Mystery");
+
+        var invalidRequests = new[]
+        {
+            validRequest with { Name = "" },
+            validRequest with { Name = new string('A', 151) },
+            validRequest with { Description = new string('A', 1001) },
+            validRequest with { Genre = "" },
+            validRequest with { Genre = new string('A', 101) }
+        };
+
+        foreach (var request in invalidRequests)
+        {
+            var response = await _client.PutAsJsonAsync(
+                $"/api/reading-clubs/{readingClub.Id}",
+                request);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturnNotFound_WhenReadingClubDoesNotExist()
+    {
+        var request = new UpdateReadingClubRequest(
+            "Poetry Reading Circle",
+            "Weekly readings of contemporary poetry",
+            "Poetry");
+
+        var response = await _client.PutAsJsonAsync($"/api/reading-clubs/{Guid.NewGuid()}", request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturnConflict_WhenReadingClubIsArchived()
+    {
+        var readingClub = await CreateReadingClubAsync("Fantasy Book Guild");
+
+        var archiveResponse = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/archive",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, archiveResponse.StatusCode);
+
+        var response = await _client.PutAsJsonAsync(
+            $"/api/reading-clubs/{readingClub.Id}",
+            new UpdateReadingClubRequest(
+                "Literary Fiction Circle",
+                "Discussions about contemporary literary fiction",
+                "Literary Fiction"));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
     private async Task<ReadingClubResponse> CreateReadingClubAsync(string name)
     {
         var response = await _client.PostAsJsonAsync("/api/reading-clubs",
