@@ -122,6 +122,17 @@ public sealed class ReadersController(
         );
     }
 
+    [HttpPatch("{id:guid}/reactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reactivate(Guid id)
+    {
+        await readerService.ReactivateAsync(id);
+
+        return NoContent();
+    }
+
     private static ClubSubscriptionResponse MapSubscriptionToResponse(ClubSubscription subscription)
     {
         return new ClubSubscriptionResponse(

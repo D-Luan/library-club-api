@@ -91,4 +91,14 @@ public class Reader
 
         Status = ReaderStatus.Inactive;
     }
+
+    public void Reactivate()
+    {
+        if (Status == ReaderStatus.Active)
+        {
+            throw new ConflictException("Reader is already active");
+        }
+
+        Status = ReaderStatus.Active;
+    }
 }

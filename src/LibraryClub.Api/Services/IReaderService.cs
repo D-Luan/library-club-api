@@ -9,4 +9,5 @@ public interface IReaderService
     Task<Reader?> GetByIdAsync(Guid id);
     Task<PagedResult<Reader>> GetPagedAsync(int page, int pageSize);
     Task InactivateAsync(Guid id);
+    Task ReactivateAsync(Guid id);
 }

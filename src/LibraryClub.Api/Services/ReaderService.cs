@@ -58,4 +58,22 @@ public class ReaderService(
 
         return await readerRepository.GetPagedAsync(page, pageSize);
     }
+
+    public async Task ReactivateAsync(Guid id)
+    {
+        logger.LogInformation("Reactivating reader {ReaderId}", id);
+
+        var reader = await readerRepository.GetByIdAsync(id);
+
+        if (reader is null)
+        {
+            throw new NotFoundException("Reader not found");
+        }
+
+        reader.Reactivate();
+
+        await readerRepository.UpdateAsync(reader);
+
+        logger.LogInformation("Reader {ReaderId} reactivated successfully", id);
+    }
 }
