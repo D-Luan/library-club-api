@@ -4,7 +4,6 @@ using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
-using LibraryClub.Api.Common;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
@@ -193,5 +192,65 @@ public class ReaderServiceTests
         Assert.Equal(2, result.Items.Count);
 
         await repository.Received(1).GetPagedAsync(1, 2);
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_ShouldReactivateReader_WhenReaderIsInactive()
+    {
+        var repository = Substitute.For<IReaderRepository>();
+
+        var reader = new Reader("Marina Alves", "marina.alves@email.com");
+
+        reader.Inactivate();
+
+        repository.GetByIdAsync(reader.Id).Returns(reader);
+
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
+
+        await service.ReactivateAsync(reader.Id);
+
+        Assert.Equal(ReaderStatus.Active, reader.Status);
+
+        await repository.Received(1).GetByIdAsync(reader.Id);
+        await repository.Received(1).UpdateAsync(Arg.Is<Reader>(updatedReader =>
+            updatedReader.Id == reader.Id &&
+            updatedReader.Status == ReaderStatus.Active));
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_ShouldThrowNotFoundException_WhenReaderDoesNotExist()
+    {
+        var repository = Substitute.For<IReaderRepository>();
+        var readerId = Guid.NewGuid();
+
+        repository.GetByIdAsync(readerId).Returns((Reader?)null);
+
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
+
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.ReactivateAsync(readerId));
+
+        Assert.Equal("Reader not found", exception.Message);
+
+        await repository.DidNotReceive().UpdateAsync(Arg.Any<Reader>());
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_ShouldThrowConflictException_WhenReaderIsAlreadyActive()
+    {
+        var repository = Substitute.For<IReaderRepository>();
+
+        var reader = new Reader("Lucas Ferreira", "lucas.ferreira@email.com");
+
+        repository.GetByIdAsync(reader.Id).Returns(reader);
+
+        var service = new ReaderService(repository, NullLogger<ReaderService>.Instance);
+        
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.ReactivateAsync(reader.Id));
+
+        Assert.Equal("Reader is already active", exception.Message);
+
+        await repository.DidNotReceive().UpdateAsync(Arg.Any<Reader>());
     }
 }

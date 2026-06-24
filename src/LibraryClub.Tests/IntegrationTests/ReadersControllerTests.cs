@@ -296,6 +296,47 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Reactivate_ShouldReturnNoContent_WhenReaderIsInactive()
+    {
+        var reader = await CreateReaderAsync("Beatriz Nogueira");
+
+        var inactivateResponse = await _client.PatchAsync(
+            $"/api/readers/{reader.Id}/inactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
+
+        var reactivateResponse = await _client.PatchAsync(
+            $"/api/readers/{reader.Id}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, reactivateResponse.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/readers/{reader.Id}");
+        var reactivatedReader = await getResponse.Content.ReadFromJsonAsync<ReaderResponse>();
+
+        Assert.NotNull(reactivatedReader);
+        Assert.Equal("Active", reactivatedReader.Status);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnNotFound_WhenReaderDoesNotExist()
+    {
+        var response = await _client.PatchAsync(
+            $"/api/readers/{Guid.NewGuid()}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnConflict_WhenReaderIsAlreadyActive()
+    {
+        var reader = await CreateReaderAsync("Rafael Costa");
+
+        var response = await _client.PatchAsync($"/api/readers/{reader.Id}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
     private async Task<ReaderResponse> CreateReaderAsync(string name)
     {
         var response = await _client.PostAsJsonAsync("/api/readers",

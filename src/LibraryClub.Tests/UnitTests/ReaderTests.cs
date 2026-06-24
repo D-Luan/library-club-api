@@ -67,4 +67,27 @@ public class ReaderTests
 
         Assert.Equal("Reader is already inactive", exception.Message);
     }
+
+    [Fact]
+    public void Reactivate_ShouldSetStatusToActive_WhenReaderIsInactive()
+    {
+        var reader = new Reader("Isabela Martins", "isabela.martins@email.com");
+
+        reader.Inactivate();
+
+        reader.Reactivate();
+
+        Assert.Equal(ReaderStatus.Active, reader.Status);
+    }
+
+    [Fact]
+    public void Reactivate_ShouldThrowConflictException_WhenReaderIsAlreadyActive()
+    {
+        var reader = new Reader("Gabriel Oliveira", "gabriel.oliveira@email.com");
+
+        var exception = Assert.Throws<ConflictException>(() =>
+            reader.Reactivate());
+
+        Assert.Equal("Reader is already active", exception.Message);
+    }
 }
