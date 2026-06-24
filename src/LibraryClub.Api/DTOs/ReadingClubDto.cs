@@ -6,6 +6,12 @@ public record CreateReadingClubRequest(
     string Genre
 );
 
+public record UpdateReadingClubRequest(
+    string Name,
+    string? Description,
+    string Genre
+);
+
 public record ReadingClubResponse(
     Guid Id,
     string Name,

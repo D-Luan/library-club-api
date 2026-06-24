@@ -69,4 +69,22 @@ public class ReadingClubService(
 
         return await readingClubRepository.GetPagedAsync(page, pageSize);
     }
+
+    public async Task UpdateAsync(Guid id, string name, string? description, string genre)
+    {
+        logger.LogInformation("Updating reading club {ReadingClubId}", id);
+
+        var readingClub = await readingClubRepository.GetByIdAsync(id);
+
+        if (readingClub is null)
+        {
+            throw new NotFoundException("Reading club not found");
+        }
+
+        readingClub.UpdateDetails(name, description, genre);
+
+        await readingClubRepository.UpdateAsync(readingClub);
+
+        logger.LogInformation("Reading club {ReadingClubId} updated successfully", id);
+    }
 }

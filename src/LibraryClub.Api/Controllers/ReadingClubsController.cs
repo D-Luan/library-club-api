@@ -12,6 +12,7 @@ public sealed class ReadingClubsController(
     IReadingClubService readingClubService,
     IValidator<CreateReadingClubRequest> createReadingClubValidator,
     IClubSubscriptionService subscriptionService,
+    IValidator<UpdateReadingClubRequest> updateReadingClubValidator,
     IValidator<PagedRequest> pagedRequestValidator) : ControllerBase
 {
     [HttpPost]
@@ -131,6 +132,33 @@ public sealed class ReadingClubsController(
             subscriptions.PageSize,
             subscriptions.TotalCount)
         );
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(Guid id, UpdateReadingClubRequest request)
+    {
+        var validationResult = await updateReadingClubValidator.ValidateAsync(request);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors.Select(error => new
+            {
+                error.PropertyName,
+                error.ErrorMessage
+            }));
+        }
+
+        await readingClubService.UpdateAsync(
+            id,
+            request.Name,
+            request.Description,
+            request.Genre);
+
+        return NoContent();
     }
 
     private static ClubSubscriptionResponse MapSubscriptionToResponse(ClubSubscription subscription)

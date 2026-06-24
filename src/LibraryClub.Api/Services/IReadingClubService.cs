@@ -8,6 +8,7 @@ public interface IReadingClubService
     Task<ReadingClub> CreateAsync(string name, string? description, string genre);
     Task<ReadingClub?> GetByIdAsync(Guid id);
     Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize);
+    Task UpdateAsync(Guid id, string name, string? description, string genre);
     Task InactivateAsync(Guid id);
     Task ArchiveAsync(Guid id);
 }

@@ -101,6 +101,18 @@ public class ReadingClub
         Genre = genre.Trim();
     }
 
+    public void UpdateDetails(string name, string? description, string genre)
+    {
+        if (Status == ReadingClubStatus.Archived)
+        {
+            throw new ConflictException("Archived reading club cannot be updated");
+        }
+
+        SetName(name);
+        SetDescription(description);
+        SetGenre(genre);
+    }
+
     public void Inactivate()
     {
         if (Status == ReadingClubStatus.Inactive)
