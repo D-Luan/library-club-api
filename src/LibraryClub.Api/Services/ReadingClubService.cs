@@ -87,4 +87,22 @@ public class ReadingClubService(
 
         logger.LogInformation("Reading club {ReadingClubId} updated successfully", id);
     }
+
+    public async Task ReactivateAsync(Guid id)
+    {
+        logger.LogInformation("Reactivating reading club {ReadingClubId}", id);
+
+        var readingClub = await readingClubRepository.GetByIdAsync(id);
+
+        if (readingClub is null)
+        {
+            throw new NotFoundException("Reading club not found");
+        }
+
+        readingClub.Reactivate();
+
+        await readingClubRepository.UpdateAsync(readingClub);
+
+        logger.LogInformation("Reading club {ReadingClubId} reactivated successfully", id);
+    }
 }

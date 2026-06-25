@@ -137,4 +137,19 @@ public class ReadingClub
 
         Status = ReadingClubStatus.Archived;
     }
+
+    public void Reactivate()
+    {
+        if (Status == ReadingClubStatus.Active)
+        {
+            throw new ConflictException("Reading club is already active");
+        }
+
+        if (Status == ReadingClubStatus.Archived)
+        {
+            throw new ConflictException("Archived reading club cannot be reactivated");
+        }
+
+        Status = ReadingClubStatus.Active;
+    }
 }

@@ -10,5 +10,6 @@ public interface IReadingClubService
     Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize);
     Task UpdateAsync(Guid id, string name, string? description, string genre);
     Task InactivateAsync(Guid id);
+    Task ReactivateAsync(Guid id);
     Task ArchiveAsync(Guid id);
 }
