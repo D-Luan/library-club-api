@@ -189,4 +189,49 @@ public class ReadingClubTests
 
         Assert.Equal("Archived reading club cannot be updated", exception.Message);
     }
+
+    [Fact]
+    public void Reactivate_ShouldSetStatusToActive_WhenReadingClubIsInactive()
+    {
+        var readingClub = new ReadingClub(
+            "Historical Fiction Forum",
+            "Discussions about historical novels",
+            "Historical Fiction");
+
+        readingClub.Inactivate();
+
+        readingClub.Reactivate();
+
+        Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
+    }
+
+    [Fact]
+    public void Reactivate_ShouldThrowConflictException_WhenReadingClubIsAlreadyActive()
+    {
+        var readingClub = new ReadingClub(
+            "Mystery Book Circle",
+            "Discussions about mystery novels",
+            "Mystery");
+
+        var exception = Assert.Throws<ConflictException>(() =>
+            readingClub.Reactivate());
+
+        Assert.Equal("Reading club is already active", exception.Message);
+    }
+
+    [Fact]
+    public void Reactivate_ShouldThrowConflictException_WhenReadingClubIsArchived()
+    {
+        var readingClub = new ReadingClub(
+            "Fantasy Book Guild",
+            "Discussions about fantasy literature",
+            "Fantasy");
+
+        readingClub.Archive();
+
+        var exception = Assert.Throws<ConflictException>(() =>
+            readingClub.Reactivate());
+
+        Assert.Equal("Archived reading club cannot be reactivated", exception.Message);
+    }
 }

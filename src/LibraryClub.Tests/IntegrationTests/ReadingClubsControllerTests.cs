@@ -407,7 +407,7 @@ public class ReadingClubsControllerTests(IntegrationTestFixture fixture) : IAsyn
         var readingClub = await CreateReadingClubAsync("Coastal Classics");
 
         var request = new UpdateReadingClubRequest(
-            "Mystery Book Circle", 
+            "Mystery Book Circle",
             "Discussions about mystery novels",
             "Mystery");
 
@@ -513,6 +513,64 @@ public class ReadingClubsControllerTests(IntegrationTestFixture fixture) : IAsyn
                 "Literary Fiction"));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnNoContent_WhenReadingClubIsInactive()
+    {
+        var readingClub = await CreateReadingClubAsync("Historical Fiction Forum");
+
+        var inactivateResponse = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/inactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
+
+        var reactivateResponse = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, reactivateResponse.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/reading-clubs/{readingClub.Id}");
+        var reactivatedReadingClub = await getResponse.Content.ReadFromJsonAsync<ReadingClubResponse>();
+
+        Assert.NotNull(reactivatedReadingClub);
+        Assert.Equal("Active", reactivatedReadingClub.Status);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnNotFound_WhenReadingClubDoesNotExist()
+    {
+        var response = await _client.PatchAsync(
+            $"/api/reading-clubs/{Guid.NewGuid()}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnConflict_WhenReadingClubIsAlreadyActive()
+    {
+        var readingClub = await CreateReadingClubAsync("Mystery Book Circle");
+
+        var response = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnConflict_WhenReadingClubIsArchived()
+    {
+        var readingClub = await CreateReadingClubAsync("Fantasy Book Guild");
+
+        var archiveResponse = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/archive", content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, archiveResponse.StatusCode);
+
+        var reactivateResponse = await _client.PatchAsync(
+            $"/api/reading-clubs/{readingClub.Id}/reactivate", content: null);
+
+        Assert.Equal(HttpStatusCode.Conflict, reactivateResponse.StatusCode);
     }
 
     private async Task<ReadingClubResponse> CreateReadingClubAsync(string name)
