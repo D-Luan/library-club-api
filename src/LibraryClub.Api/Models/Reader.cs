@@ -4,6 +4,10 @@ using System.Text.RegularExpressions;
 
 namespace LibraryClub.Api.Models;
 
+/// <summary>
+/// Represents a reader registered in the library club platform.
+/// The entity owns its status transitions and protects reader-related business rules.
+/// </summary>
 public class Reader
 {
     public Guid Id { get; private set; }
@@ -18,15 +22,15 @@ public class Reader
         Status = ReaderStatus.Active;
         CreatedAt = DateTime.UtcNow;
 
-        SetName(name);
-        SetEmail(email);
+        ChangeName(name);
+        ChangeEmail(email);
     }
 
     private Reader(
-        Guid id,
-        string name,
-        string email,
-        ReaderStatus status,
+        Guid id, 
+        string name, 
+        string email, 
+        ReaderStatus status, 
         DateTime createdAt)
     {
         if (id == Guid.Empty)
@@ -39,14 +43,23 @@ public class Reader
             throw new DomainValidationException("Reader creation date cannot be empty");
         }
 
+        if (!Enum.IsDefined(status))
+        {
+            throw new DomainValidationException("Invalid reader status");
+        }
+
         Id = id;
         Status = status;
         CreatedAt = createdAt;
 
-        SetName(name);
-        SetEmail(email);
+        ChangeName(name);
+        ChangeEmail(email);
     }
 
+    /// <summary>
+    /// Rebuilds a reader loaded from persistence without creating a new identity.
+    /// Use this method only when mapping database records back to the domain model.
+    /// </summary>
     public static Reader Restore(
         Guid id,
         string name,
@@ -57,31 +70,49 @@ public class Reader
         return new Reader(id, name, email, status, createdAt);
     }
 
-    public void SetName(string name)
+    public void ChangeName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new DomainValidationException("Name cannot be empty");
         }
 
-        Name = name.Trim();
+        var trimmedName = name.Trim();
+
+        if (trimmedName.Length > 150)
+        {
+            throw new DomainValidationException("Name must have at most 150 characters");
+        }
+
+        Name = trimmedName;
     }
 
-    public void SetEmail(string email)
+    public void ChangeEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
         {
             throw new DomainValidationException("Email cannot be empty");
         }
 
-        if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        if (normalizedEmail.Length > 255)
+        {
+            throw new DomainValidationException("Email must have at most 255 characters");
+        }
+
+        if (!Regex.IsMatch(normalizedEmail, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
         {
             throw new DomainValidationException("Invalid email format");
         }
 
-        Email = email.Trim().ToLowerInvariant();
+        Email = normalizedEmail;
     }
 
+    /// <summary>
+    /// Inactivates the reader.
+    /// Readers that are already inactive cannot be inactivated again.
+    /// </summary>
     public void Inactivate()
     {
         if (Status == ReaderStatus.Inactive)
@@ -92,6 +123,10 @@ public class Reader
         Status = ReaderStatus.Inactive;
     }
 
+    /// <summary>
+    /// Reactivates an inactive reader.
+    /// Active readers cannot be reactivated.
+    /// </summary>
     public void Reactivate()
     {
         if (Status == ReaderStatus.Active)
