@@ -20,7 +20,7 @@ public class ReaderTests
     }
 
     [Fact]
-    public void SetName_ShouldThrowException_WhenNameIsEmpty()
+    public void ChangeName_ShouldThrowException_WhenNameIsEmpty()
     {
         var exception = Assert.Throws<DomainValidationException>(() => 
             new Reader("", "john.doe@email.com"));
@@ -29,7 +29,7 @@ public class ReaderTests
     }
 
     [Fact]
-    public void SetEmail_ShouldThrowException_WhenEmailIsEmpty()
+    public void ChangeEmail_ShouldThrowException_WhenEmailIsEmpty()
     {
         var exception = Assert.Throws<DomainValidationException>(() => 
             new Reader("John Doe", ""));
@@ -38,7 +38,7 @@ public class ReaderTests
     }
 
     [Fact]
-    public void SetEmail_ShouldThrowException_WhenEmailIsInvalid()
+    public void ChangeEmail_ShouldThrowException_WhenEmailIsInvalid()
     {
         var exception = Assert.Throws<DomainValidationException>(() =>
             new Reader("John Doe", "invalid-email"));
@@ -89,5 +89,36 @@ public class ReaderTests
             reader.Reactivate());
 
         Assert.Equal("Reader is already active", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_ShouldThrowException_WhenNameIsTooLong()
+    {
+        var name = new string('A', 151);
+
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            new Reader(name, "reader@email.com"));
+
+        Assert.Equal("Name must have at most 150 characters", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_ShouldThrowException_WhenEmailIsTooLong()
+    {
+        var email = $"{new string('a', 246)}@email.com";
+
+        var exception = Assert.Throws<DomainValidationException>(() =>
+            new Reader("Ana Martins", email));
+
+        Assert.Equal("Email must have at most 255 characters", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_ShouldTrimNameAndNormalizeEmail()
+    {
+        var reader = new Reader("  Ana Martins  ", "  ANA.MARTINS@EMAIL.COM  ");
+
+        Assert.Equal("Ana Martins", reader.Name);
+        Assert.Equal("ana.martins@email.com", reader.Email);
     }
 }

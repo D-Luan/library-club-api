@@ -71,7 +71,7 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
         var reader = new Reader("Ana Lima", "ana.lima@email.com");
         await _repository.AddAsync(reader);
 
-        reader.SetName("Ana Maria Lima");
+        reader.ChangeName("Ana Maria Lima");
         reader.Inactivate();
 
         await _repository.UpdateAsync(reader);
