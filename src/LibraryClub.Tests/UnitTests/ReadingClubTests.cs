@@ -27,6 +27,30 @@ public class ReadingClubTests
 
         Assert.Null(readingClub.Description);
     }
+    
+    [Fact]
+    public void Constructor_ShouldSetDescriptionToNull_WhenDescriptionIsWhiteSpace()
+    {
+        var readingClub = new ReadingClub(
+            "Science Fiction Society", 
+            "   ", 
+            "Science Fiction");
+
+        Assert.Null(readingClub.Description);
+    }
+
+    [Fact]
+    public void Constructor_ShouldTrimNameDescriptionAndGenre()
+    {
+        var readingClub = new ReadingClub(
+            "  Mystery Book Circle  ",
+            "  Discussions about mystery novels  ",
+            "  Mystery  ");
+
+        Assert.Equal("Mystery Book Circle", readingClub.Name);
+        Assert.Equal("Discussions about mystery novels", readingClub.Description);
+        Assert.Equal("Mystery", readingClub.Genre);
+    }
 
     [Fact]
     public void Constructor_ShouldThrowException_WhenNameIsEmpty()
@@ -160,6 +184,43 @@ public class ReadingClubTests
         Assert.Equal("Drama", readingClub.Genre);
         Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
         Assert.Equal(createdAt, readingClub.CreatedAt);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldTrimNameDescriptionAndGenre()
+    {
+        var readingClub = new ReadingClub(
+            "Coastal Classics",
+            "Monthly discussions on classic literature",
+            "Classics");
+
+        readingClub.UpdateDetails(
+            "  Mystery Book Circle  ",
+            "  Discussions about mystery novels  ",
+            "  Mystery  ");
+
+        Assert.Equal("Mystery Book Circle", readingClub.Name);
+        Assert.Equal("Discussions about mystery novels", readingClub.Description);
+        Assert.Equal("Mystery", readingClub.Genre);
+        Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldSetDescriptionToNull_WhenDescriptionIsWhiteSpace()
+    {
+        var readingClub = new ReadingClub(
+            "Science Fiction Society",
+            "Exploring speculative fiction",
+            "Science Fiction");
+
+        readingClub.UpdateDetails(
+            "Historical Fiction Forum",
+            "   ",
+            "Historical Fiction");
+
+        Assert.Equal("Historical Fiction Forum", readingClub.Name);
+        Assert.Null(readingClub.Description);
+        Assert.Equal("Historical Fiction", readingClub.Genre);
     }
 
     [Fact]
