@@ -3,6 +3,10 @@ using LibraryClub.Api.Exceptions;
 
 namespace LibraryClub.Api.Models;
 
+/// <summary>
+/// Represents a reading club and centralizes rules for club details and status transitions.
+/// Archived clubs are historical records and cannot be edited, inactivated, or reactivated.
+/// </summary>
 public class ReadingClub
 {
     public Guid Id { get; private set; }
@@ -50,6 +54,10 @@ public class ReadingClub
         SetGenre(genre);
     }
 
+    /// <summary>
+    /// Rebuilds a reading club loaded from persistence without creating a new identity.
+    /// Use this method only when mapping database records back to the domain model.
+    /// </summary>
     public static ReadingClub Restore(
         Guid id,
         string name,
@@ -61,46 +69,10 @@ public class ReadingClub
         return new ReadingClub(id, name, description, genre, status, createdAt);
     }
 
-    public void SetName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new DomainValidationException("Name cannot be empty");
-        }
-
-        if (name.Length > 150)
-        {
-            throw new DomainValidationException("Name must have at most 150 characters");
-        }
-
-        Name = name.Trim();
-    }
-
-    public void SetDescription(string? description)
-    {
-        if (description is not null && description.Length > 1000)
-        {
-            throw new DomainValidationException("Description must have at most 1000 characters");
-        }
-
-        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
-    }
-
-    public void SetGenre(string genre)
-    {
-        if (string.IsNullOrWhiteSpace(genre))
-        {
-            throw new DomainValidationException("Genre cannot be empty");
-        }
-
-        if (genre.Length > 100)
-        {
-            throw new DomainValidationException("Genre must have at most 100 characters");
-        }
-
-        Genre = genre.Trim();
-    }
-
+    /// <summary>
+    /// Updates editable club details without changing the current status.
+    /// Active and inactive clubs can be edited; archived clubs cannot.
+    /// </summary>
     public void UpdateDetails(string name, string? description, string genre)
     {
         if (Status == ReadingClubStatus.Archived)
@@ -113,6 +85,62 @@ public class ReadingClub
         SetGenre(genre);
     }
 
+    private void SetName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainValidationException("Name cannot be empty");
+        }
+
+        var trimmedName = name.Trim();
+
+        if (trimmedName.Length > 150)
+        {
+            throw new DomainValidationException("Name must have at most 150 characters");
+        }
+
+        Name = trimmedName;
+    }
+
+    private void SetDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            Description = null;
+            return;
+        }
+
+        var trimmedDescription = description.Trim();
+
+        if (trimmedDescription.Length > 1000)
+        {
+            throw new DomainValidationException("Description must have at most 1000 characters");
+        }
+
+        Description = trimmedDescription;
+    }
+
+    private void SetGenre(string genre)
+    {
+        if (string.IsNullOrWhiteSpace(genre))
+        {
+            throw new DomainValidationException("Genre cannot be empty");
+        }
+
+        var trimmedGenre = genre.Trim();
+
+        if (trimmedGenre.Length > 100)
+        {
+            throw new DomainValidationException("Genre must have at most 100 characters");
+        }
+
+        Genre = trimmedGenre;
+    }
+
+    /// <summary>
+    /// Inactivates the reading club.
+    /// Inactive clubs cannot be inactivated again, and archived clubs cannot be inactivated.
+    /// </summary>
     public void Inactivate()
     {
         if (Status == ReadingClubStatus.Inactive)
@@ -128,6 +156,10 @@ public class ReadingClub
         Status = ReadingClubStatus.Inactive;
     }
 
+    /// <summary>
+    /// Archives the reading club as a historical record.
+    /// Archived clubs cannot be archived again.
+    /// </summary>
     public void Archive()
     {
         if (Status == ReadingClubStatus.Archived)
@@ -138,6 +170,10 @@ public class ReadingClub
         Status = ReadingClubStatus.Archived;
     }
 
+    /// <summary>
+    /// Reactivates an inactive reading club.
+    /// Active clubs and archived clubs cannot be reactivated.
+    /// </summary>
     public void Reactivate()
     {
         if (Status == ReadingClubStatus.Active)
