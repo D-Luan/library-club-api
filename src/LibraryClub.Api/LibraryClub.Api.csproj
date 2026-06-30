@@ -7,6 +7,11 @@
 		<UserSecretsId>dc5fbc94-eba8-4621-ba4e-783b9c6cd375</UserSecretsId>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Dapper" Version="2.1.79" />
 		<PackageReference Include="dbup" Version="5.0.41" />

@@ -12,7 +12,16 @@ public record PagedResponse<T>(
     int PageSize,
     int TotalCount)
 {
-    public int TotalPages => PageSize <= 0 || TotalCount == 0
-        ? 0
-        : (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public int TotalPages
+    {
+        get
+        {
+            if (PageSize <= 0 || TotalCount == 0)
+            {
+                return 0;
+            }
+
+            return (int)Math.Ceiling(TotalCount / (double)PageSize);
+        }
+    }
 }
