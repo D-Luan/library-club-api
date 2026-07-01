@@ -8,7 +8,7 @@ namespace LibraryClub.Api.Controllers;
 
 [ApiController]
 [Route("api/reading-clubs")]
-public sealed class ReadingClubsController(
+public class ReadingClubsController(
     IReadingClubService readingClubService,
     IValidator<CreateReadingClubRequest> createReadingClubValidator,
     IClubSubscriptionService subscriptionService,
@@ -39,42 +39,7 @@ public sealed class ReadingClubsController(
         return CreatedAtAction(
             nameof(GetById),
             new { id = readingClub.Id },
-            MapToResponse(readingClub)
-        );
-    }
-
-    [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadingClubResponse))]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReadingClubResponse>> GetById(Guid id)
-    {
-        var readingClub = await readingClubService.GetByIdAsync(id);
-
-        if (readingClub is null) return NotFound();
-
-        return Ok(MapToResponse(readingClub));
-    }
-
-    [HttpPatch("{id:guid}/inactivate")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Inactivate(Guid id)
-    {
-        await readingClubService.InactivateAsync(id);
-
-        return NoContent();
-    }
-
-    [HttpPatch("{id:guid}/archive")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Archive(Guid id)
-    {
-        await readingClubService.ArchiveAsync(id);
-
-        return NoContent();
+            MapToResponse(readingClub));
     }
 
     [HttpGet]
@@ -99,8 +64,22 @@ public sealed class ReadingClubsController(
             readingClubs.Items.Select(MapToResponse).ToList(),
             readingClubs.Page,
             readingClubs.PageSize,
-            readingClubs.TotalCount)
-        );
+            readingClubs.TotalCount));
+    }
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadingClubResponse))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReadingClubResponse>> GetById(Guid id)
+    {
+        var readingClub = await readingClubService.GetByIdAsync(id);
+
+        if (readingClub is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(MapToResponse(readingClub));
     }
 
     [HttpGet("{readingClubId:guid}/subscriptions")]
@@ -108,7 +87,8 @@ public sealed class ReadingClubsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ClubSubscriptionResponse>>> GetSubscriptions(
-      Guid readingClubId, [FromQuery] PagedRequest request)
+      Guid readingClubId,
+      [FromQuery] PagedRequest request)
     {
         var validationResult = await pagedRequestValidator.ValidateAsync(request);
 
@@ -130,8 +110,7 @@ public sealed class ReadingClubsController(
             subscriptions.Items.Select(MapSubscriptionToResponse).ToList(),
             subscriptions.Page,
             subscriptions.PageSize,
-            subscriptions.TotalCount)
-        );
+            subscriptions.TotalCount));
     }
 
     [HttpPut("{id:guid}")]
@@ -161,6 +140,17 @@ public sealed class ReadingClubsController(
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/inactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Inactivate(Guid id)
+    {
+        await readingClubService.InactivateAsync(id);
+
+        return NoContent();
+    }
+
     [HttpPatch("{id:guid}/reactivate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -172,16 +162,15 @@ public sealed class ReadingClubsController(
         return NoContent();
     }
 
-    private static ClubSubscriptionResponse MapSubscriptionToResponse(ClubSubscription subscription)
+    [HttpPatch("{id:guid}/archive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Archive(Guid id)
     {
-        return new ClubSubscriptionResponse(
-            subscription.Id,
-            subscription.ReaderId,
-            subscription.ReadingClubId,
-            subscription.Status.ToString(),
-            subscription.CreatedAt,
-            subscription.CanceledAt
-        );
+        await readingClubService.ArchiveAsync(id);
+
+        return NoContent();
     }
 
     private static ReadingClubResponse MapToResponse(ReadingClub readingClub)
@@ -192,7 +181,17 @@ public sealed class ReadingClubsController(
             readingClub.Description,
             readingClub.Genre,
             readingClub.Status.ToString(),
-            readingClub.CreatedAt
-        );
+            readingClub.CreatedAt);
+    }
+
+    private static ClubSubscriptionResponse MapSubscriptionToResponse(ClubSubscription subscription)
+    {
+        return new ClubSubscriptionResponse(
+            subscription.Id,
+            subscription.ReaderId,
+            subscription.ReadingClubId,
+            subscription.Status.ToString(),
+            subscription.CreatedAt,
+            subscription.CanceledAt);
     }
 }

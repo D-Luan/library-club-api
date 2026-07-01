@@ -8,7 +8,7 @@ namespace LibraryClub.Api.Controllers;
 
 [ApiController]
 [Route("api/club-subscriptions")]
-public sealed class ClubSubscriptionsController(
+public class ClubSubscriptionsController(
     IClubSubscriptionService subscriptionService,
     IValidator<CreateClubSubscriptionRequest> createSubscriptionValidator) : ControllerBase
 {

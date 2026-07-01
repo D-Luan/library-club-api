@@ -37,34 +37,7 @@ public sealed class ReadersController(
         return CreatedAtAction(
             nameof(GetById),
             new { id = reader.Id },
-            MapToResponse(reader)
-        );
-    }
-
-    [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReaderResponse))]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReaderResponse>> GetById(Guid id)
-    {
-        var reader = await readerService.GetByIdAsync(id);
-
-        if (reader is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(MapToResponse(reader));
-    }
-
-    [HttpPatch("{id:guid}/inactivate")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Inactivate(Guid id)
-    {
-        await readerService.InactivateAsync(id);
-
-        return NoContent();
+            MapToResponse(reader));
     }
 
     [HttpGet]
@@ -89,8 +62,22 @@ public sealed class ReadersController(
             readers.Items.Select(MapToResponse).ToList(),
             readers.Page,
             readers.PageSize,
-            readers.TotalCount)
-        );
+            readers.TotalCount));
+    }
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReaderResponse))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReaderResponse>> GetById(Guid id)
+    {
+        var reader = await readerService.GetByIdAsync(id);
+
+        if (reader is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(MapToResponse(reader));
     }
 
     [HttpGet("{readerId:guid}/subscriptions")]
@@ -98,7 +85,8 @@ public sealed class ReadersController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResponse<ClubSubscriptionResponse>>> GetSubscriptions(
-        Guid readerId, [FromQuery] PagedRequest request)
+        Guid readerId,
+        [FromQuery] PagedRequest request)
     {
         var validationResult = await pagedRequestValidator.ValidateAsync(request);
 
@@ -111,15 +99,27 @@ public sealed class ReadersController(
             }));
         }
 
-        var subscriptions = await subscriptionService.GetByReaderAsync(readerId, request.Page,
-        request.PageSize);
+        var subscriptions = await subscriptionService.GetByReaderAsync(
+            readerId,
+            request.Page,
+            request.PageSize);
 
         return Ok(new PagedResponse<ClubSubscriptionResponse>(
             subscriptions.Items.Select(MapSubscriptionToResponse).ToList(),
             subscriptions.Page,
             subscriptions.PageSize,
-            subscriptions.TotalCount)
-        );
+            subscriptions.TotalCount));
+    }
+
+    [HttpPatch("{id:guid}/inactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Inactivate(Guid id)
+    {
+        await readerService.InactivateAsync(id);
+
+        return NoContent();
     }
 
     [HttpPatch("{id:guid}/reactivate")]
@@ -133,6 +133,16 @@ public sealed class ReadersController(
         return NoContent();
     }
 
+    private static ReaderResponse MapToResponse(Reader reader)
+    {
+        return new ReaderResponse(
+            reader.Id,
+            reader.Name,
+            reader.Email,
+            reader.Status.ToString(),
+            reader.CreatedAt);
+    }
+
     private static ClubSubscriptionResponse MapSubscriptionToResponse(ClubSubscription subscription)
     {
         return new ClubSubscriptionResponse(
@@ -141,18 +151,6 @@ public sealed class ReadersController(
             subscription.ReadingClubId,
             subscription.Status.ToString(),
             subscription.CreatedAt,
-            subscription.CanceledAt
-        );
-    }
-
-    private static ReaderResponse MapToResponse(Reader reader)
-    {
-        return new ReaderResponse(
-            reader.Id,
-            reader.Name,
-            reader.Email,
-            reader.Status.ToString(),
-            reader.CreatedAt
-        );
+            subscription.CanceledAt);
     }
 }
