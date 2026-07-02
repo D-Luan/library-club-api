@@ -49,6 +49,8 @@ public sealed class GlobalExceptionHandler(
 
         var statusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
         if (statusCode >= 500)
         {
             logger.LogError(
@@ -67,9 +69,7 @@ public sealed class GlobalExceptionHandler(
         httpContext.Response.StatusCode = statusCode;
         httpContext.Response.ContentType = "application/problem+json";
 
-        await httpContext.Response.WriteAsJsonAsync(
-            problemDetails,
-            cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         return true;
     }
