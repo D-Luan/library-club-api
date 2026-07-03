@@ -6,106 +6,98 @@ using LibraryClub.Api.Models;
 
 namespace LibraryClub.Api.Repositories;
 
-public class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReaderRepository
+public sealed class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReaderRepository
 {
-    public async Task AddAsync(Reader reader)
+    public async Task AddAsync(Reader reader, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+
         using var connection = connectionFactory.CreateConnection();
 
-        const string sql = """    
+        const string sql = """
             INSERT INTO Readers (Id, Name, Email, Status, CreatedAt)
-            VALUES (@Id, @Name, @Email, @Status, @CreatedAt);            
+            VALUES (@Id, @Name, @Email, @Status, @CreatedAt);
             """;
 
-        await connection.ExecuteAsync(sql, new
-        {
-            reader.Id,
-            reader.Name,
-            reader.Email,
-            Status = reader.Status.ToString(),
-            reader.CreatedAt
-        });
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                sql,
+                new
+                {
+                    reader.Id,
+                    reader.Name,
+                    reader.Email,
+                    Status = reader.Status.ToString(),
+                    reader.CreatedAt
+                },
+                cancellationToken: cancellationToken));
     }
 
-    public async Task<Reader?> GetByIdAsync(Guid id)
+    public async Task<Reader?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         using var connection = connectionFactory.CreateConnection();
 
         const string sql = """
-              SELECT Id, Name, Email, Status, CreatedAt
-              FROM Readers
-              WHERE Id = @Id
-              """;
+            SELECT Id, Name, Email, Status, CreatedAt
+            FROM Readers
+            WHERE Id = @Id;
+            """;
 
         var record = await connection.QuerySingleOrDefaultAsync<ReaderRecord>(
-            sql,
-            new { Id = id });
+            new CommandDefinition(
+                sql,
+                new { Id = id },
+                cancellationToken: cancellationToken));
 
         return record is null ? null : MapToReader(record);
     }
 
-    public async Task<Reader?> GetByEmailAsync(string email)
+    public async Task<Reader?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         using var connection = connectionFactory.CreateConnection();
 
         const string sql = """
-              SELECT Id, Name, Email, Status, CreatedAt
-              FROM Readers
-              WHERE Email = @Email
-              """;
+            SELECT Id, Name, Email, Status, CreatedAt
+            FROM Readers
+            WHERE Email = @Email;
+            """;
 
         var record = await connection.QuerySingleOrDefaultAsync<ReaderRecord>(
-            sql,
-            new { Email = NormalizeEmail(email) });
+            new CommandDefinition(
+                sql,
+                new { Email = NormalizeEmail(email) },
+                cancellationToken: cancellationToken));
 
         return record is null ? null : MapToReader(record);
     }
 
-    public async Task<bool> ExistsByEmailAsync(string email)
+    public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         using var connection = connectionFactory.CreateConnection();
 
         const string sql = """
-              SELECT CAST(CASE WHEN EXISTS (
-                  SELECT 1
-                  FROM Readers
-                  WHERE Email = @Email
-              ) THEN 1 ELSE 0 END AS bit)
-              """;
+            SELECT CAST(CASE WHEN EXISTS (
+                SELECT 1
+                FROM Readers
+                WHERE Email = @Email
+            ) THEN 1 ELSE 0 END AS bit);
+            """;
 
         return await connection.ExecuteScalarAsync<bool>(
-            sql,
-            new { Email = NormalizeEmail(email) });
+            new CommandDefinition(
+                sql,
+                new { Email = NormalizeEmail(email) },
+                cancellationToken: cancellationToken));
     }
 
-    public async Task UpdateAsync(Reader reader)
+    public async Task<PagedResult<Reader>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        using var connection = connectionFactory.CreateConnection();
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
 
-        const string sql = """
-              UPDATE Readers
-              SET Name = @Name,
-                  Email = @Email,
-                  Status = @Status
-              WHERE Id = @Id
-              """;
-
-        var affectedRows = await connection.ExecuteAsync(sql, new
-        {
-            reader.Id,
-            reader.Name,
-            reader.Email,
-            Status = reader.Status.ToString()
-        });
-
-        if (affectedRows == 0)
-        {
-            throw new InvalidOperationException("Reader not found");
-        }
-    }
-
-    public async Task<PagedResult<Reader>> GetPagedAsync(int page, int pageSize)
-    {
         using var connection = connectionFactory.CreateConnection();
 
         var offset = (page - 1) * pageSize;
@@ -120,21 +112,59 @@ public class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReader
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
 
-        using var result = await connection.QueryMultipleAsync(sql, new
-        {
-            Offset = offset,
-            PageSize = pageSize
-        });
+        using var result = await connection.QueryMultipleAsync(
+            new CommandDefinition(
+                sql,
+                new
+                {
+                    Offset = offset,
+                    PageSize = pageSize
+                },
+                cancellationToken: cancellationToken));
 
         var totalCount = await result.ReadSingleAsync<int>();
-        var records = (await result.ReadAsync<ReaderRecord>()).ToList();
+
+        var readers = (await result.ReadAsync<ReaderRecord>())
+            .Select(MapToReader)
+            .ToList();
 
         return new PagedResult<Reader>(
-            records.Select(MapToReader).ToList(),
+            readers,
             page,
             pageSize,
-            totalCount
-        );
+            totalCount);
+    }
+
+    public async Task UpdateAsync(Reader reader, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+
+        using var connection = connectionFactory.CreateConnection();
+
+        const string sql = """
+            UPDATE Readers
+            SET Name = @Name,
+                Email = @Email,
+                Status = @Status
+            WHERE Id = @Id;
+            """;
+
+        var affectedRows = await connection.ExecuteAsync(
+            new CommandDefinition(
+                sql,
+                new
+                {
+                    reader.Id,
+                    reader.Name,
+                    reader.Email,
+                    Status = reader.Status.ToString()
+                },
+                cancellationToken: cancellationToken));
+
+        if (affectedRows == 0)
+        {
+            throw new InvalidOperationException("Reader not found");
+        }
     }
 
     private static Reader MapToReader(ReaderRecord record)
@@ -143,6 +173,7 @@ public class ReaderRepository(ISqlConnectionFactory connectionFactory) : IReader
         {
             throw new InvalidOperationException($"Invalid reader status: {record.Status}");
         }
+
         return Reader.Restore(
             record.Id,
             record.Name,
