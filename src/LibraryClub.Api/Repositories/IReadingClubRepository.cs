@@ -5,8 +5,11 @@ namespace LibraryClub.Api.Repositories;
 
 public interface IReadingClubRepository
 {
-    Task AddAsync(ReadingClub readingClub);
-    Task<ReadingClub?> GetByIdAsync(Guid id);
-    Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize);
-    Task UpdateAsync(ReadingClub readingClub);
+    Task AddAsync(ReadingClub readingClub, CancellationToken cancellationToken = default);
+    Task<ReadingClub?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<PagedResult<ReadingClub>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+    Task UpdateAsync(ReadingClub readingClub, CancellationToken cancellationToken = default);
 }

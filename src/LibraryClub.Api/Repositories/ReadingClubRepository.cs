@@ -6,18 +6,23 @@ using LibraryClub.Api.Models;
 
 namespace LibraryClub.Api.Repositories;
 
-public class ReadingClubRepository(ISqlConnectionFactory connectionFactory) : IReadingClubRepository
+public sealed class ReadingClubRepository(ISqlConnectionFactory connectionFactory) 
+    : IReadingClubRepository
 {
-    public async Task AddAsync(ReadingClub readingClub)
+    public async Task AddAsync(
+        ReadingClub readingClub,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(readingClub);
+
         using var connection = connectionFactory.CreateConnection();
 
         const string sql = """
-              INSERT INTO ReadingClubs (Id, Name, Description, Genre, Status, CreatedAt)
-              VALUES (@Id, @Name, @Description, @Genre, @Status, @CreatedAt);
-              """;
+            INSERT INTO ReadingClubs (Id, Name, Description, Genre, Status, CreatedAt)
+            VALUES (@Id, @Name, @Description, @Genre, @Status, @CreatedAt);
+            """;
 
-        await connection.ExecuteAsync(sql, new
+        var parameters = new
         {
             readingClub.Id,
             readingClub.Name,
@@ -25,54 +30,44 @@ public class ReadingClubRepository(ISqlConnectionFactory connectionFactory) : IR
             readingClub.Genre,
             Status = readingClub.Status.ToString(),
             readingClub.CreatedAt
-        });
+        };
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                sql,
+                parameters,
+                cancellationToken: cancellationToken));
     }
 
-    public async Task<ReadingClub?> GetByIdAsync(Guid id)
+    public async Task<ReadingClub?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
         using var connection = connectionFactory.CreateConnection();
 
         const string sql = """
-              SELECT Id, Name, Description, Genre, Status, CreatedAt
-              FROM ReadingClubs
-              WHERE Id = @Id
-              """;
+            SELECT Id, Name, Description, Genre, Status, CreatedAt
+            FROM ReadingClubs
+            WHERE Id = @Id;
+            """;
 
-        var record = await connection.QuerySingleOrDefaultAsync<ReadingClubRecord>(sql, new { Id = id });
+        var record = await connection.QuerySingleOrDefaultAsync<ReadingClubRecord>(
+            new CommandDefinition(
+                sql,
+                new { Id = id },
+                cancellationToken: cancellationToken));
 
         return record is null ? null : MapToReadingClub(record);
     }
 
-    public async Task UpdateAsync(ReadingClub readingClub)
+    public async Task<PagedResult<ReadingClub>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        using var connection = connectionFactory.CreateConnection();
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
 
-        const string sql = """
-              UPDATE ReadingClubs
-              SET Name = @Name,
-                  Description = @Description,
-                  Genre = @Genre,
-                  Status = @Status
-              WHERE Id = @Id
-              """;
-
-        var affectedRows = await connection.ExecuteAsync(sql, new
-        {
-            readingClub.Id,
-            readingClub.Name,
-            readingClub.Description,
-            readingClub.Genre,
-            Status = readingClub.Status.ToString()
-        });
-
-        if (affectedRows == 0)
-        {
-            throw new InvalidOperationException("Reading club not found");
-        }
-    }
-
-    public async Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize)
-    {
         using var connection = connectionFactory.CreateConnection();
 
         var offset = (page - 1) * pageSize;
@@ -87,25 +82,73 @@ public class ReadingClubRepository(ISqlConnectionFactory connectionFactory) : IR
             OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
             """;
 
-        using var result = await connection.QueryMultipleAsync(sql, new
+        var parameters = new
         {
             Offset = offset,
             PageSize = pageSize
-        });
+        };
+
+        using var result = await connection.QueryMultipleAsync(
+            new CommandDefinition(
+                sql,
+                parameters,
+                cancellationToken: cancellationToken));
 
         var totalCount = await result.ReadSingleAsync<int>();
-        var records = (await result.ReadAsync<ReadingClubRecord>()).ToList();
+
+        var readingClubs = (await result.ReadAsync<ReadingClubRecord>())
+            .Select(MapToReadingClub)
+            .ToList();
 
         return new PagedResult<ReadingClub>(
-            records.Select(MapToReadingClub).ToList(),
+            readingClubs,
             page,
             pageSize,
             totalCount);
     }
 
+    public async Task UpdateAsync(
+        ReadingClub readingClub,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(readingClub);
+
+        using var connection = connectionFactory.CreateConnection();
+
+        const string sql = """
+            UPDATE ReadingClubs
+            SET Name = @Name,
+                Description = @Description,
+                Genre = @Genre,
+                Status = @Status
+            WHERE Id = @Id;
+            """;
+
+        var parameters = new
+        {
+            readingClub.Id,
+            readingClub.Name,
+            readingClub.Description,
+            readingClub.Genre,
+            Status = readingClub.Status.ToString()
+        };
+
+        var affectedRows = await connection.ExecuteAsync(
+            new CommandDefinition(
+                sql,
+                parameters,
+                cancellationToken: cancellationToken));
+
+        if (affectedRows == 0)
+        {
+            throw new InvalidOperationException("Reading club not found");
+        }
+    }
+
     private static ReadingClub MapToReadingClub(ReadingClubRecord record)
     {
-        if (!Enum.TryParse<ReadingClubStatus>(record.Status, out var status))
+        if (!Enum.TryParse<ReadingClubStatus>(record.Status, out var status) ||
+            !Enum.IsDefined(status))
         {
             throw new InvalidOperationException($"Invalid reading club status: {record.Status}");
         }
