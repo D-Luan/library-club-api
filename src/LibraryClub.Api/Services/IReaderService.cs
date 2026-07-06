@@ -5,9 +5,19 @@ namespace LibraryClub.Api.Services;
 
 public interface IReaderService
 {
-    Task<Reader> CreateAsync(string name, string email);
-    Task<Reader?> GetByIdAsync(Guid id);
-    Task<PagedResult<Reader>> GetPagedAsync(int page, int pageSize);
-    Task InactivateAsync(Guid id);
-    Task ReactivateAsync(Guid id);
+    Task<Reader> CreateAsync(
+        string name,
+        string email,
+        CancellationToken cancellationToken = default);
+
+    Task<Reader?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<Reader>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task InactivateAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task ReactivateAsync(Guid id, CancellationToken cancellationToken = default);
 }

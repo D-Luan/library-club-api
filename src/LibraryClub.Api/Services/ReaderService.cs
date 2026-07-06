@@ -5,15 +5,18 @@ using LibraryClub.Api.Repositories;
 
 namespace LibraryClub.Api.Services;
 
-public class ReaderService(
+public sealed class ReaderService(
     IReaderRepository readerRepository,
     ILogger<ReaderService> logger) : IReaderService
 {
-    public async Task<Reader> CreateAsync(string name, string email)
+    public async Task<Reader> CreateAsync(
+        string name,
+        string email,
+        CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Creating reader...");
-
-        var emailAlreadyExists = await readerRepository.ExistsByEmailAsync(email);
+        var emailAlreadyExists = await readerRepository.ExistsByEmailAsync(
+            email,
+            cancellationToken);
 
         if (emailAlreadyExists)
         {
@@ -22,23 +25,38 @@ public class ReaderService(
 
         var reader = new Reader(name, email);
 
-        await readerRepository.AddAsync(reader);
+        await readerRepository.AddAsync(reader, cancellationToken);
 
         logger.LogInformation("Reader {ReaderId} created successfully", reader.Id);
 
         return reader;
     }
 
-    public Task<Reader?> GetByIdAsync(Guid id)
+    public Task<Reader?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
-        return readerRepository.GetByIdAsync(id);
+        return readerRepository.GetByIdAsync(id, cancellationToken);
     }
 
-    public async Task InactivateAsync(Guid id)
+    public Task<PagedResult<Reader>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation(
+            "Listing readers page {Page} pageSize {PageSize}",
+            page,
+            pageSize);
+
+        return readerRepository.GetPagedAsync(page, pageSize, cancellationToken);
+    }
+
+    public async Task InactivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Inactivating reader {ReaderId}", id);
 
-        var reader = await readerRepository.GetByIdAsync(id);
+        var reader = await readerRepository.GetByIdAsync(id, cancellationToken);
 
         if (reader is null)
         {
@@ -47,23 +65,16 @@ public class ReaderService(
 
         reader.Inactivate();
 
-        await readerRepository.UpdateAsync(reader);
+        await readerRepository.UpdateAsync(reader, cancellationToken);
 
         logger.LogInformation("Reader {ReaderId} inactivated successfully", id);
     }
 
-    public async Task<PagedResult<Reader>> GetPagedAsync(int page, int pageSize)
-    {
-        logger.LogInformation("Listing readers page {Page} pageSize {PageSize}", page, pageSize);
-
-        return await readerRepository.GetPagedAsync(page, pageSize);
-    }
-
-    public async Task ReactivateAsync(Guid id)
+    public async Task ReactivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Reactivating reader {ReaderId}", id);
 
-        var reader = await readerRepository.GetByIdAsync(id);
+        var reader = await readerRepository.GetByIdAsync(id, cancellationToken);
 
         if (reader is null)
         {
@@ -72,7 +83,7 @@ public class ReaderService(
 
         reader.Reactivate();
 
-        await readerRepository.UpdateAsync(reader);
+        await readerRepository.UpdateAsync(reader, cancellationToken);
 
         logger.LogInformation("Reader {ReaderId} reactivated successfully", id);
     }
