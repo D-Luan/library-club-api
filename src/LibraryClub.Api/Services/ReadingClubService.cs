@@ -5,104 +5,109 @@ using LibraryClub.Api.Repositories;
 
 namespace LibraryClub.Api.Services;
 
-public class ReadingClubService(
+public sealed class ReadingClubService(
     IReadingClubRepository readingClubRepository,
     ILogger<ReadingClubService> logger) : IReadingClubService
 {
-    public async Task<ReadingClub> CreateAsync(string name, string? description, string genre)
+    public async Task<ReadingClub> CreateAsync(
+        string name,
+        string? description,
+        string genre,
+        CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Creating reading club");
-
         var readingClub = new ReadingClub(name, description, genre);
 
-        await readingClubRepository.AddAsync(readingClub);
+        await readingClubRepository.AddAsync(readingClub, cancellationToken);
 
         logger.LogInformation("Reading club {ReadingClubId} created successfully", readingClub.Id);
 
         return readingClub;
     }
 
-    public Task<ReadingClub?> GetByIdAsync(Guid id)
+    public Task<ReadingClub?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return readingClubRepository.GetByIdAsync(id);
+        return readingClubRepository.GetByIdAsync(id, cancellationToken);
     }
 
-    public async Task InactivateAsync(Guid id)
+    public Task<PagedResult<ReadingClub>> GetPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Inactivating reading club {ReadingClubId}", id);
+        logger.LogInformation(
+            "Listing reading clubs page {Page} pageSize {PageSize}",
+            page,
+            pageSize);
 
-        var readingClub = await readingClubRepository.GetByIdAsync(id);
-
-        if (readingClub is null)
-        {
-            throw new NotFoundException("Reading club not found");
-        }
-
-        readingClub.Inactivate();
-
-        await readingClubRepository.UpdateAsync(readingClub);
-
-        logger.LogInformation("Reading club {ReadingClubId} inactivated successfully", id);
+        return readingClubRepository.GetPagedAsync(page, pageSize, cancellationToken);
     }
 
-    public async Task ArchiveAsync(Guid id)
-    {
-        logger.LogInformation("Archiving reading club {ReadingClubId}", id);
-
-        var readingClub = await readingClubRepository.GetByIdAsync(id);
-
-        if (readingClub is null)
-        {
-            throw new NotFoundException("Reading club not found");
-        }
-
-        readingClub.Archive();
-
-        await readingClubRepository.UpdateAsync(readingClub);
-
-        logger.LogInformation("Reading club {ReadingClubId} archived successfully", id);
-    }
-
-    public async Task<PagedResult<ReadingClub>> GetPagedAsync(int page, int pageSize)
-    {
-        logger.LogInformation("Listing reading clubs page {Page} pageSize {PageSize}", page, pageSize);
-
-        return await readingClubRepository.GetPagedAsync(page, pageSize);
-    }
-
-    public async Task UpdateAsync(Guid id, string name, string? description, string genre)
+    public async Task UpdateAsync(
+        Guid id,
+        string name,
+        string? description,
+        string genre,
+        CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Updating reading club {ReadingClubId}", id);
 
-        var readingClub = await readingClubRepository.GetByIdAsync(id);
-
-        if (readingClub is null)
-        {
-            throw new NotFoundException("Reading club not found");
-        }
+        var readingClub = await GetRequiredByIdAsync(id, cancellationToken);
 
         readingClub.UpdateDetails(name, description, genre);
 
-        await readingClubRepository.UpdateAsync(readingClub);
+        await readingClubRepository.UpdateAsync(readingClub, cancellationToken);
 
         logger.LogInformation("Reading club {ReadingClubId} updated successfully", id);
     }
 
-    public async Task ReactivateAsync(Guid id)
+    public async Task InactivateAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Inactivating reading club {ReadingClubId}", id);
+
+        var readingClub = await GetRequiredByIdAsync(id, cancellationToken);
+
+        readingClub.Inactivate();
+
+        await readingClubRepository.UpdateAsync(readingClub, cancellationToken);
+
+        logger.LogInformation("Reading club {ReadingClubId} inactivated successfully", id);
+    }
+
+    public async Task ReactivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Reactivating reading club {ReadingClubId}", id);
 
-        var readingClub = await readingClubRepository.GetByIdAsync(id);
+        var readingClub = await GetRequiredByIdAsync(id, cancellationToken);
+
+        readingClub.Reactivate();
+
+        await readingClubRepository.UpdateAsync(readingClub, cancellationToken);
+
+        logger.LogInformation("Reading club {ReadingClubId} reactivated successfully", id);
+    }
+
+    public async Task ArchiveAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Archiving reading club {ReadingClubId}", id);
+
+        var readingClub = await GetRequiredByIdAsync(id, cancellationToken);
+
+        readingClub.Archive();
+
+        await readingClubRepository.UpdateAsync(readingClub, cancellationToken);
+
+        logger.LogInformation("Reading club {ReadingClubId} archived successfully", id);
+    }
+
+    private async Task<ReadingClub> GetRequiredByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var readingClub = await readingClubRepository.GetByIdAsync(id, cancellationToken);
 
         if (readingClub is null)
         {
             throw new NotFoundException("Reading club not found");
         }
 
-        readingClub.Reactivate();
-
-        await readingClubRepository.UpdateAsync(readingClub);
-
-        logger.LogInformation("Reading club {ReadingClubId} reactivated successfully", id);
+        return readingClub;
     }
 }
