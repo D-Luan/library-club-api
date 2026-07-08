@@ -5,9 +5,24 @@ namespace LibraryClub.Api.Services;
 
 public interface IClubSubscriptionService
 {
-    Task<ClubSubscription> CreateAsync(Guid readerId, Guid readingClubId);
-    Task<ClubSubscription?> GetByIdAsync(Guid id);
-    Task<PagedResult<ClubSubscription>> GetByReaderAsync(Guid readerId, int page, int pageSize);
-    Task<PagedResult<ClubSubscription>> GetByReadingClubAsync(Guid readingClubId, int page, int pageSize);
-    Task CancelAsync(Guid id);
+    Task<ClubSubscription> CreateAsync(
+        Guid readerId,
+        Guid readingClubId,
+        CancellationToken cancellationToken = default);
+
+    Task<ClubSubscription?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ClubSubscription>> GetByReaderAsync(
+        Guid readerId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ClubSubscription>> GetByReadingClubAsync(
+        Guid readingClubId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task CancelAsync(Guid id, CancellationToken cancellationToken = default);
 }
