@@ -3,7 +3,7 @@ using LibraryClub.Api.DTOs;
 
 namespace LibraryClub.Api.Validators;
 
-public class PagedRequestValidator : AbstractValidator<PagedRequest>
+public sealed class PagedRequestValidator : AbstractValidator<PagedRequest>
 {
     public PagedRequestValidator()
     {
@@ -13,6 +13,6 @@ public class PagedRequestValidator : AbstractValidator<PagedRequest>
 
         RuleFor(x => x.PageSize)
             .InclusiveBetween(1, 100)
-            .WithMessage("PageSize must be between 1 and 100");
+            .WithMessage("Page size must be between 1 and 100");
     }
 }

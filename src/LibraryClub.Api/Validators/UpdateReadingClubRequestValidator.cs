@@ -3,7 +3,8 @@ using LibraryClub.Api.DTOs;
 
 namespace LibraryClub.Api.Validators;
 
-public class UpdateReadingClubRequestValidator : AbstractValidator<UpdateReadingClubRequest>
+public sealed class UpdateReadingClubRequestValidator
+    : AbstractValidator<UpdateReadingClubRequest>
 {
     public UpdateReadingClubRequestValidator()
     {
