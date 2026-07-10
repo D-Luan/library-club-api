@@ -1,14 +1,14 @@
+using FluentValidation;
+using Serilog;
 using LibraryClub.Api.Data;
+using LibraryClub.Api.Middlewares;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
-using FluentValidation;
 using LibraryClub.Api.Validators;
-using LibraryClub.Api.Middlewares;
-using Serilog;
 
 Log.Logger = new LoggerConfiguration()
-      .WriteTo.Console()
-      .CreateBootstrapLogger();
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 try
 {
@@ -21,7 +21,9 @@ try
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
             .Enrich.WithProperty("Application", "LibraryClub.Api")
-            .Enrich.WithProperty("EnvironmentName", context.HostingEnvironment.EnvironmentName);
+            .Enrich.WithProperty(
+                "EnvironmentName",
+                context.HostingEnvironment.EnvironmentName);
     });
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -32,8 +34,8 @@ try
     }
 
     var applicationInsightsConnectionString =
-         builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
-         ?? builder.Configuration["ApplicationInsights:ConnectionString"];
+        builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+        ?? builder.Configuration["ApplicationInsights:ConnectionString"];
 
     if (!builder.Environment.IsEnvironment("Testing") &&
         !string.IsNullOrWhiteSpace(applicationInsightsConnectionString))
@@ -61,12 +63,17 @@ try
 
     builder.Services.AddControllers();
 
+    builder.Services.AddEndpointsApiExplorer();
+
     builder.Services.AddSwaggerGen(options =>
     {
         var xmlFile = $"{typeof(Program).Assembly.GetName().Name}.xml";
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
 
-        options.IncludeXmlComments(xmlPath);
+        if (File.Exists(xmlPath))
+        {
+            options.IncludeXmlComments(xmlPath);
+        }
     });
 
     var app = builder.Build();
@@ -75,7 +82,7 @@ try
 
     DatabaseMigrator.Migrate(connectionString, scriptsPath);
 
-    if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+    if (!app.Environment.IsEnvironment("Testing"))
     {
         app.UseSwagger();
         app.UseSwaggerUI(options =>
@@ -84,13 +91,13 @@ try
         });
     }
 
+    app.UseExceptionHandler();
+
     app.UseHttpsRedirection();
 
     app.UseSerilogRequestLogging();
 
     app.UseAuthorization();
-
-    app.UseExceptionHandler();
 
     app.MapControllers();
 
@@ -105,4 +112,4 @@ finally
     Log.CloseAndFlush();
 }
 
-public partial class Program { }
+public partial class Program;
