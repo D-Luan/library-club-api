@@ -45,6 +45,11 @@ public class ReadingClub
             throw new DomainValidationException("Reading club creation date cannot be empty");
         }
 
+        if (!Enum.IsDefined(status))
+        {
+            throw new DomainValidationException("Invalid reading club status");
+        }
+
         Id = id;
         Status = status;
         CreatedAt = createdAt;

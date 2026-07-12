@@ -1,11 +1,11 @@
-﻿using LibraryClub.Api.Enums;
+﻿using LibraryClub.Api.Common;
+using LibraryClub.Api.Enums;
 using LibraryClub.Api.Exceptions;
 using LibraryClub.Api.Models;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
-using LibraryClub.Api.Common;
-using NSubstitute;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 
 namespace LibraryClub.Tests.UnitTests;
 
@@ -13,142 +13,89 @@ namespace LibraryClub.Tests.UnitTests;
 public class ReadingClubServiceTests
 {
     [Fact]
-    public async Task CreateAsync_ShouldCreateReadingClub()
+    public async Task CreateAsync_ShouldCreateReadingClub_WhenDataIsValid()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
 
-        var readingClub = await service.CreateAsync("Fantasy Club", "Fantasy books", "Fantasy");
+        var service = context.CreateService();
+
+        var readingClub = await service.CreateAsync(
+            "Epic Worlds Club",
+            "Fantasy literature discussions",
+            "Fantasy",
+            cancellationToken);
 
         Assert.NotEqual(Guid.Empty, readingClub.Id);
-        Assert.Equal("Fantasy Club", readingClub.Name);
-        Assert.Equal("Fantasy books", readingClub.Description);
+        Assert.Equal("Epic Worlds Club", readingClub.Name);
+        Assert.Equal("Fantasy literature discussions", readingClub.Description);
         Assert.Equal("Fantasy", readingClub.Genre);
         Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
 
-        await repository.Received(1).AddAsync(Arg.Is<ReadingClub>(r =>
-            r.Id == readingClub.Id &&
-            r.Name == "Fantasy Club" &&
-            r.Description == "Fantasy books" &&
-            r.Genre == "Fantasy" &&
-            r.Status == ReadingClubStatus.Active));
+        await context.Repository.Received(1).AddAsync(
+            Arg.Is<ReadingClub>(club =>
+                club.Id == readingClub.Id &&
+                club.Name == "Epic Worlds Club" &&
+                club.Description == "Fantasy literature discussions" &&
+                club.Genre == "Fantasy" &&
+                club.Status == ReadingClubStatus.Active),
+            cancellationToken);
     }
 
     [Fact]
     public async Task GetByIdAsync_ShouldReturnReadingClub_WhenReadingClubExists()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
-        var readingClub = new ReadingClub("Fantasy Club", null, "Fantasy");
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        var readingClub = new ReadingClub("Mythic Pages Circle", null, "Fantasy");
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var result = await service.GetByIdAsync(readingClub.Id);
+        var service = context.CreateService();
+
+        var result = await service.GetByIdAsync(readingClub.Id, cancellationToken);
 
         Assert.NotNull(result);
         Assert.Equal(readingClub.Id, result.Id);
 
-        await repository.Received(1).GetByIdAsync(readingClub.Id);
+        await context.Repository.Received(1)
+            .GetByIdAsync(readingClub.Id, cancellationToken);
     }
 
     [Fact]
     public async Task GetByIdAsync_ShouldReturnNull_WhenReadingClubDoesNotExist()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
         var id = Guid.NewGuid();
 
-        repository.GetByIdAsync(id).Returns((ReadingClub?)null);
+        context.Repository
+            .GetByIdAsync(id, cancellationToken)
+            .Returns((ReadingClub?)null);
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
-        var result = await service.GetByIdAsync(id);
+        var result = await service.GetByIdAsync(id, cancellationToken);
 
         Assert.Null(result);
 
-        await repository.Received(1).GetByIdAsync(id);
-    }
-
-    [Fact]
-    public async Task InactivateAsync_ShouldInactivateReadingClub_WhenReadingClubExists()
-    {
-        var repository = Substitute.For<IReadingClubRepository>();
-        var readingClub = new ReadingClub("Fantasy Club", null, "Fantasy");
-
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
-
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
-
-        await service.InactivateAsync(readingClub.Id);
-
-        Assert.Equal(ReadingClubStatus.Inactive, readingClub.Status);
-
-        await repository.Received(1).UpdateAsync(Arg.Is<ReadingClub>(r =>
-            r.Id == readingClub.Id &&
-            r.Status == ReadingClubStatus.Inactive));
-    }
-
-    [Fact]
-    public async Task InactivateAsync_ShouldThrowException_WhenReadingClubDoesNotExist()
-    {
-        var repository = Substitute.For<IReadingClubRepository>();
-        var id = Guid.NewGuid();
-
-        repository.GetByIdAsync(id).Returns((ReadingClub?)null);
-
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
-
-        var exception = await Assert.ThrowsAsync<NotFoundException>(() => service.InactivateAsync(id));
-
-        Assert.Equal("Reading club not found", exception.Message);
-
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
-    }
-
-    [Fact]
-    public async Task ArchiveAsync_ShouldArchiveReadingClub_WhenReadingClubExists()
-    {
-        var repository = Substitute.For<IReadingClubRepository>();
-        var readingClub = new ReadingClub("Fantasy Club", null, "Fantasy");
-
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
-
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
-
-        await service.ArchiveAsync(readingClub.Id);
-
-        Assert.Equal(ReadingClubStatus.Archived, readingClub.Status);
-
-        await repository.Received(1).UpdateAsync(Arg.Is<ReadingClub>(r =>
-            r.Id == readingClub.Id &&
-            r.Status == ReadingClubStatus.Archived));
-    }
-
-    [Fact]
-    public async Task ArchiveAsync_ShouldThrowException_WhenReadingClubDoesNotExist()
-    {
-        var repository = Substitute.For<IReadingClubRepository>();
-        var id = Guid.NewGuid();
-
-        repository.GetByIdAsync(id).Returns((ReadingClub?)null);
-
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
-
-        var exception = await Assert.ThrowsAsync<NotFoundException>(() => service.ArchiveAsync(id));
-
-        Assert.Equal("Reading club not found", exception.Message);
-
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+        await context.Repository.Received(1)
+            .GetByIdAsync(id, cancellationToken);
     }
 
     [Fact]
     public async Task GetPagedAsync_ShouldReturnPagedReadingClubs()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
 
         var readingClubs = new List<ReadingClub>
         {
-            new("Fantasy Club", "Fantasy books", "Fantasy"),
+            new("Adventure Readers", "Adventure novels", "Adventure"),
             new("History Club", "History books", "History")
         };
 
@@ -158,11 +105,16 @@ public class ReadingClubServiceTests
             PageSize: 2,
             TotalCount: 3);
 
-        repository.GetPagedAsync(1, 2).Returns(pagedResult);
+        context.Repository
+            .GetPagedAsync(1, 2, cancellationToken)
+            .Returns(pagedResult);
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
-        var result = await service.GetPagedAsync(1, 2);
+        var result = await service.GetPagedAsync(
+            page: 1,
+            pageSize: 2,
+            cancellationToken);
 
         Assert.Equal(1, result.Page);
         Assert.Equal(2, result.PageSize);
@@ -170,48 +122,58 @@ public class ReadingClubServiceTests
         Assert.Equal(2, result.TotalPages);
         Assert.Equal(2, result.Items.Count);
 
-        await repository.Received(1).GetPagedAsync(1, 2);
+        await context.Repository.Received(1)
+            .GetPagedAsync(1, 2, cancellationToken);
     }
 
     [Fact]
     public async Task UpdateAsync_ShouldUpdateReadingClub_WhenReadingClubExists()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Coastal Classics",
             "Monthly discussions on classic literature",
             "Classics");
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var service = new ReadingClubService(
-            repository,
-            NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         await service.UpdateAsync(
             readingClub.Id,
             "Mystery Book Circle",
             "Discussions about mystery novels",
-            "Mystery");
+            "Mystery",
+            cancellationToken);
 
         Assert.Equal("Mystery Book Circle", readingClub.Name);
         Assert.Equal("Discussions about mystery novels", readingClub.Description);
         Assert.Equal("Mystery", readingClub.Genre);
         Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
 
-        await repository.Received(1).GetByIdAsync(readingClub.Id);
-        await repository.Received(1).UpdateAsync(Arg.Is<ReadingClub>(club =>
-            club.Id == readingClub.Id &&
-            club.Name == "Mystery Book Circle" &&
-            club.Description == "Discussions about mystery novels" &&
-            club.Genre == "Mystery" &&
-            club.Status == ReadingClubStatus.Active));
+        await context.Repository.Received(1)
+            .GetByIdAsync(readingClub.Id, cancellationToken);
+
+        await context.Repository.Received(1).UpdateAsync(
+            Arg.Is<ReadingClub>(club =>
+                club.Id == readingClub.Id &&
+                club.Name == "Mystery Book Circle" &&
+                club.Description == "Discussions about mystery novels" &&
+                club.Genre == "Mystery" &&
+                club.Status == ReadingClubStatus.Active),
+            cancellationToken);
     }
 
     [Fact]
     public async Task UpdateAsync_ShouldUpdateInactiveReadingClub_WhenReadingClubExists()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Science Fiction Society",
             "Exploring speculative fiction",
@@ -219,54 +181,63 @@ public class ReadingClubServiceTests
 
         readingClub.Inactivate();
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var service = new ReadingClubService(
-            repository,
-            NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         await service.UpdateAsync(
             readingClub.Id,
             "Historical Fiction Forum",
             null,
-            "Historical Fiction");
+            "Historical Fiction",
+            cancellationToken);
 
         Assert.Equal("Historical Fiction Forum", readingClub.Name);
         Assert.Null(readingClub.Description);
         Assert.Equal("Historical Fiction", readingClub.Genre);
         Assert.Equal(ReadingClubStatus.Inactive, readingClub.Status);
 
-        await repository.Received(1).UpdateAsync(readingClub);
+        await context.Repository.Received(1)
+            .UpdateAsync(readingClub, cancellationToken);
     }
 
     [Fact]
-    public async Task UpdateAsync_ShouldThrowNotFoundException_WhenReadingClubDoesNotExist()
+    public async Task UpdateAsync_ShouldThrowNotFound_WhenReadingClubDoesNotExist()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
         var readingClubId = Guid.NewGuid();
 
-        repository.GetByIdAsync(readingClubId).Returns((ReadingClub?)null);
+        context.Repository
+            .GetByIdAsync(readingClubId, cancellationToken)
+            .Returns((ReadingClub?)null);
 
-        var service = new ReadingClubService(
-            repository,
-            NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
             service.UpdateAsync(
                 readingClubId,
                 "Poetry Reading Circle",
                 "Weekly readings of contemporary poetry",
-                "Poetry"));
+                "Poetry",
+                cancellationToken));
 
         Assert.Equal("Reading club not found", exception.Message);
 
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task UpdateAsync_ShouldThrowConflictException_WhenReadingClubIsArchived()
+    public async Task UpdateAsync_ShouldThrowConflict_WhenReadingClubIsArchived()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Fantasy Book Guild",
             "Discussions about fantasy literature",
@@ -274,28 +245,205 @@ public class ReadingClubServiceTests
 
         readingClub.Archive();
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var service = new ReadingClubService(
-            repository,
-            NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.UpdateAsync(
                 readingClub.Id,
                 "Literary Fiction Circle",
                 "Discussions about contemporary literary fiction",
-                "Literary Fiction"));
+                "Literary Fiction",
+                cancellationToken));
 
         Assert.Equal("Archived reading club cannot be updated", exception.Message);
 
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InactivateAsync_ShouldInactivateReadingClub_WhenReadingClubExists()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var readingClub = new ReadingClub("Epic Worlds Club", null, "Fantasy");
+
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
+
+        var service = context.CreateService();
+
+        await service.InactivateAsync(readingClub.Id, cancellationToken);
+
+        Assert.Equal(ReadingClubStatus.Inactive, readingClub.Status);
+
+        await context.Repository.Received(1).UpdateAsync(
+            Arg.Is<ReadingClub>(club =>
+                club.Id == readingClub.Id &&
+                club.Status == ReadingClubStatus.Inactive),
+            cancellationToken);
+    }
+
+    [Fact]
+    public async Task InactivateAsync_ShouldThrowNotFound_WhenReadingClubDoesNotExist()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var id = Guid.NewGuid();
+
+        context.Repository
+            .GetByIdAsync(id, cancellationToken)
+            .Returns((ReadingClub?)null);
+
+        var service = context.CreateService();
+
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.InactivateAsync(id, cancellationToken));
+
+        Assert.Equal("Reading club not found", exception.Message);
+
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InactivateAsync_ShouldThrowConflict_WhenReadingClubIsAlreadyInactive()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var readingClub = new ReadingClub("Ancient History Club", null, "History");
+        readingClub.Inactivate();
+
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
+
+        var service = context.CreateService();
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.InactivateAsync(readingClub.Id, cancellationToken));
+
+        Assert.Equal("Reading club is already inactive", exception.Message);
+
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InactivateAsync_ShouldThrowConflict_WhenReadingClubIsArchived()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var readingClub = new ReadingClub("Poetry Reading Circle", null, "Poetry");
+        readingClub.Archive();
+
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
+
+        var service = context.CreateService();
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.InactivateAsync(readingClub.Id, cancellationToken));
+
+        Assert.Equal("Archived reading club cannot be inactivated", exception.Message);
+
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ArchiveAsync_ShouldArchiveReadingClub_WhenReadingClubExists()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var readingClub = new ReadingClub("Noir Book Society", null, "Noir");
+
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
+
+        var service = context.CreateService();
+
+        await service.ArchiveAsync(readingClub.Id, cancellationToken);
+
+        Assert.Equal(ReadingClubStatus.Archived, readingClub.Status);
+
+        await context.Repository.Received(1).UpdateAsync(
+            Arg.Is<ReadingClub>(club =>
+                club.Id == readingClub.Id &&
+                club.Status == ReadingClubStatus.Archived),
+            cancellationToken);
+    }
+
+    [Fact]
+    public async Task ArchiveAsync_ShouldThrowNotFound_WhenReadingClubDoesNotExist()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var id = Guid.NewGuid();
+
+        context.Repository
+            .GetByIdAsync(id, cancellationToken)
+            .Returns((ReadingClub?)null);
+
+        var service = context.CreateService();
+
+        var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.ArchiveAsync(id, cancellationToken));
+
+        Assert.Equal("Reading club not found", exception.Message);
+
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ArchiveAsync_ShouldThrowConflict_WhenReadingClubIsAlreadyArchived()
+    {
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
+        var readingClub = new ReadingClub("Adventure Readers", null, "Adventure");
+        readingClub.Archive();
+
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
+
+        var service = context.CreateService();
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.ArchiveAsync(readingClub.Id, cancellationToken));
+
+        Assert.Equal("Reading club is already archived", exception.Message);
+
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ReactivateAsync_ShouldReactivateReadingClub_WhenReadingClubIsInactive()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
 
         var readingClub = new ReadingClub(
             "Historical Fiction Forum",
@@ -304,64 +452,82 @@ public class ReadingClubServiceTests
 
         readingClub.Inactivate();
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
-        await service.ReactivateAsync(readingClub.Id);
+        await service.ReactivateAsync(readingClub.Id, cancellationToken);
 
         Assert.Equal(ReadingClubStatus.Active, readingClub.Status);
 
-        await repository.Received(1).GetByIdAsync(readingClub.Id);
-        await repository.Received(1).UpdateAsync(Arg.Is<ReadingClub>(club =>
-            club.Id == readingClub.Id &&
-            club.Status == ReadingClubStatus.Active));
+        await context.Repository.Received(1)
+            .GetByIdAsync(readingClub.Id, cancellationToken);
+
+        await context.Repository.Received(1).UpdateAsync(
+            Arg.Is<ReadingClub>(club =>
+                club.Id == readingClub.Id &&
+                club.Status == ReadingClubStatus.Active),
+            cancellationToken);
     }
 
     [Fact]
-    public async Task ReactivateAsync_ShouldThrowNotFoundException_WhenReadingClubDoesNotExist()
+    public async Task ReactivateAsync_ShouldThrowNotFound_WhenReadingClubDoesNotExist()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
+
         var readingClubId = Guid.NewGuid();
 
-        repository.GetByIdAsync(readingClubId).Returns((ReadingClub?)null);
+        context.Repository
+            .GetByIdAsync(readingClubId, cancellationToken)
+            .Returns((ReadingClub?)null);
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         var exception = await Assert.ThrowsAsync<NotFoundException>(() =>
-            service.ReactivateAsync(readingClubId));
+            service.ReactivateAsync(readingClubId, cancellationToken));
 
         Assert.Equal("Reading club not found", exception.Message);
 
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ReactivateAsync_ShouldThrowConflictException_WhenReadingClubIsAlreadyActive()
+    public async Task ReactivateAsync_ShouldThrowConflict_WhenReadingClubIsAlreadyActive()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
 
         var readingClub = new ReadingClub(
             "Mystery Book Circle",
             "Discussions about mystery novels",
             "Mystery");
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
-            service.ReactivateAsync(readingClub.Id));
+            service.ReactivateAsync(readingClub.Id, cancellationToken));
 
         Assert.Equal("Reading club is already active", exception.Message);
 
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ReactivateAsync_ShouldThrowConflictException_WhenReadingClubIsArchived()
+    public async Task ReactivateAsync_ShouldThrowConflict_WhenReadingClubIsArchived()
     {
-        var repository = Substitute.For<IReadingClubRepository>();
+        var context = new TestContext();
+        var cancellationToken = CancellationToken.None;
 
         var readingClub = new ReadingClub(
             "Fantasy Book Guild",
@@ -370,15 +536,32 @@ public class ReadingClubServiceTests
 
         readingClub.Archive();
 
-        repository.GetByIdAsync(readingClub.Id).Returns(readingClub);
+        context.Repository
+            .GetByIdAsync(readingClub.Id, cancellationToken)
+            .Returns(readingClub);
 
-        var service = new ReadingClubService(repository, NullLogger<ReadingClubService>.Instance);
+        var service = context.CreateService();
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
-            service.ReactivateAsync(readingClub.Id));
+            service.ReactivateAsync(readingClub.Id, cancellationToken));
 
         Assert.Equal("Archived reading club cannot be reactivated", exception.Message);
 
-        await repository.DidNotReceive().UpdateAsync(Arg.Any<ReadingClub>());
+        await context.Repository.DidNotReceive().UpdateAsync(
+            Arg.Any<ReadingClub>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    private sealed class TestContext
+    {
+        public IReadingClubRepository Repository { get; } =
+            Substitute.For<IReadingClubRepository>();
+
+        public ReadingClubService CreateService()
+        {
+            return new ReadingClubService(
+                Repository,
+                NullLogger<ReadingClubService>.Instance);
+        }
     }
 }
