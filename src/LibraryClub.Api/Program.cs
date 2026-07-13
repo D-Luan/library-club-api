@@ -78,12 +78,12 @@ try
 
     var app = builder.Build();
 
-    var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Scripts");
-
-    DatabaseMigrator.Migrate(connectionString, scriptsPath);
-
     if (!app.Environment.IsEnvironment("Testing"))
     {
+        var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Scripts");
+
+        DatabaseMigrator.Migrate(connectionString, scriptsPath);
+
         app.UseSwagger();
         app.UseSwaggerUI(options =>
         {

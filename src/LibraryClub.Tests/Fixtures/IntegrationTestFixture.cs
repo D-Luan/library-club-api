@@ -6,7 +6,7 @@ using Testcontainers.MsSql;
 
 namespace LibraryClub.Tests.Fixtures;
 
-public class IntegrationTestFixture : IAsyncLifetime
+public sealed class IntegrationTestFixture : IAsyncLifetime
 {
     private readonly MsSqlContainer _dbContainer = new MsSqlBuilder().Build();
 
@@ -18,17 +18,21 @@ public class IntegrationTestFixture : IAsyncLifetime
 
     public string ConnectionString { get; private set; } = string.Empty;
 
-    public HttpClient Client => 
-        _client ?? throw new InvalidOperationException("Test client was not initialized.");
+    public HttpClient Client =>
+        _client ?? throw new InvalidOperationException(
+            "Test client was not initialized.");
 
-    public ReaderRepository ReaderRepository => 
-        _readerRepository ?? throw new InvalidOperationException("Reader Repository was not initialized.");
+    public ReaderRepository ReaderRepository =>
+        _readerRepository ?? throw new InvalidOperationException(
+            "Reader repository was not initialized.");
 
-    public ReadingClubRepository ReadingClubRepository => 
-        _readingClubRepository ?? throw new InvalidOperationException("Reading club repository was notinitialized.");
+    public ReadingClubRepository ReadingClubRepository =>
+        _readingClubRepository ?? throw new InvalidOperationException(
+            "Reading club repository was not initialized.");
 
     public ClubSubscriptionRepository ClubSubscriptionRepository =>
-        _clubSubscriptionRepository ?? throw new InvalidOperationException("Club subscription repository was notinitialized.");
+        _clubSubscriptionRepository ?? throw new InvalidOperationException(
+            "Club subscription repository was not initialized.");
 
     public async Task InitializeAsync()
     {
@@ -40,9 +44,11 @@ public class IntegrationTestFixture : IAsyncLifetime
 
         DatabaseMigrator.Migrate(ConnectionString, scriptsPath);
 
-        _readerRepository = new ReaderRepository(new SqlConnectionFactory(ConnectionString));
-        _readingClubRepository = new ReadingClubRepository(new SqlConnectionFactory(ConnectionString));
-        _clubSubscriptionRepository = new ClubSubscriptionRepository(new SqlConnectionFactory(ConnectionString));
+        var connectionFactory = new SqlConnectionFactory(ConnectionString);
+
+        _readerRepository = new ReaderRepository(connectionFactory);
+        _readingClubRepository = new ReadingClubRepository(connectionFactory);
+        _clubSubscriptionRepository = new ClubSubscriptionRepository(connectionFactory);
 
         _factory = new LibraryClubApiFactory(ConnectionString);
         _client = _factory.CreateClient();
@@ -53,10 +59,10 @@ public class IntegrationTestFixture : IAsyncLifetime
         await using var connection = new SqlConnection(ConnectionString);
 
         await connection.ExecuteAsync("""
-              DELETE FROM ClubSubscriptions;
-              DELETE FROM ReadingClubs;
-              DELETE FROM Readers;
-              """);
+            DELETE FROM ClubSubscriptions;
+            DELETE FROM ReadingClubs;
+            DELETE FROM Readers;
+            """);
     }
 
     public async Task DisposeAsync()

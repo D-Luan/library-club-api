@@ -3,17 +3,21 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace LibraryClub.Tests.Fixtures;
 
-public class LibraryClubApiFactory : WebApplicationFactory<Program>
+public sealed class LibraryClubApiFactory : WebApplicationFactory<Program>
 {
-    private const string ConnectionStringEnvironmentVariable = "ConnectionStrings__DefaultConnection";
+    private const string ConnectionStringEnvironmentVariable =
+        "ConnectionStrings__DefaultConnection";
 
     private readonly string? _previousConnectionString;
 
     public LibraryClubApiFactory(string connectionString)
     {
-        _previousConnectionString = Environment.GetEnvironmentVariable(ConnectionStringEnvironmentVariable);
+        _previousConnectionString = Environment.GetEnvironmentVariable(
+            ConnectionStringEnvironmentVariable);
 
-        Environment.SetEnvironmentVariable(ConnectionStringEnvironmentVariable, connectionString);
+        Environment.SetEnvironmentVariable(
+            ConnectionStringEnvironmentVariable,
+            connectionString);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -23,7 +27,9 @@ public class LibraryClubApiFactory : WebApplicationFactory<Program>
 
     protected override void Dispose(bool disposing)
     {
-        Environment.SetEnvironmentVariable(ConnectionStringEnvironmentVariable, _previousConnectionString);
+        Environment.SetEnvironmentVariable(
+            ConnectionStringEnvironmentVariable,
+            _previousConnectionString);
 
         base.Dispose(disposing);
     }
