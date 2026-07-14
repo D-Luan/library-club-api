@@ -10,17 +10,21 @@ namespace LibraryClub.Tests.IntegrationTests;
 public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifetime
 {
     private readonly ReaderRepository _repository = fixture.ReaderRepository;
+
     public Task InitializeAsync() => fixture.ResetDatabaseAsync();
+
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task AddAsync_ShouldInsertReader_WhenReaderIsValid()
     {
+        var cancellationToken = CancellationToken.None;
+
         var reader = new Reader("John Doe", "john.doe@email.com");
 
         await _repository.AddAsync(reader);
 
-        var savedReader = await _repository.GetByIdAsync(reader.Id);
+        var savedReader = await _repository.GetByIdAsync(reader.Id, cancellationToken);
 
         Assert.NotNull(savedReader);
         Assert.Equal(reader.Id, savedReader.Id);
@@ -36,10 +40,15 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task GetByEmailAsync_ShouldReturnReader_WhenEmailExists()
     {
-        var reader = new Reader("Mary Taylor", "mary.taylor@email.com");
-        await _repository.AddAsync(reader);
+        var cancellationToken = CancellationToken.None;
 
-        var savedReader = await _repository.GetByEmailAsync("MARY.TAYLOR@EMAIL.COM");
+        var reader = new Reader("Mary Taylor", "mary.taylor@email.com");
+
+        await _repository.AddAsync(reader, cancellationToken);
+
+        var savedReader = await _repository.GetByEmailAsync(
+            "MARY.TAYLOR@EMAIL.COM",
+            cancellationToken);
 
         Assert.NotNull(savedReader);
         Assert.Equal(reader.Id, savedReader.Id);
@@ -49,10 +58,15 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task ExistsByEmailAsync_ShouldReturnTrue_WhenEmailExists()
     {
-        var reader = new Reader("Robert Smith", "robert.smith@email.com");
-        await _repository.AddAsync(reader);
+        var cancellationToken = CancellationToken.None;
 
-        var exists = await _repository.ExistsByEmailAsync("robert.smith@email.com");
+        var reader = new Reader("Robert Smith", "robert.smith@email.com");
+
+        await _repository.AddAsync(reader, cancellationToken);
+
+        var exists = await _repository.ExistsByEmailAsync(
+            "robert.smith@email.com",
+            cancellationToken);
 
         Assert.True(exists);
     }
@@ -60,7 +74,11 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task ExistsByEmailAsync_ShouldReturnFalse_WhenEmailDoesNotExist()
     {
-        var exists = await _repository.ExistsByEmailAsync("missing@email.com");
+        var cancellationToken = CancellationToken.None;
+
+        var exists = await _repository.ExistsByEmailAsync(
+            "missing@email.com",
+            cancellationToken);
 
         Assert.False(exists);
     }
@@ -68,15 +86,18 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task UpdateAsync_ShouldUpdateReader_WhenReaderExists()
     {
+        var cancellationToken = CancellationToken.None;
+
         var reader = new Reader("Ana Lima", "ana.lima@email.com");
-        await _repository.AddAsync(reader);
+
+        await _repository.AddAsync(reader, cancellationToken);
 
         reader.ChangeName("Ana Maria Lima");
         reader.Inactivate();
 
-        await _repository.UpdateAsync(reader);
+        await _repository.UpdateAsync(reader, cancellationToken);
 
-        var updatedReader = await _repository.GetByIdAsync(reader.Id);
+        var updatedReader = await _repository.GetByIdAsync(reader.Id, cancellationToken);
 
         Assert.NotNull(updatedReader);
         Assert.Equal("Ana Maria Lima", updatedReader.Name);
@@ -86,9 +107,14 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task GetPagedAsync_ShouldReturnFirstPage_WhenReadersExist()
     {
-        var readers = await AddReadersAsync();
+        var cancellationToken = CancellationToken.None;
 
-        var result = await _repository.GetPagedAsync(page: 1, pageSize: 2);
+        var readers = await AddReadersAsync(cancellationToken);
+
+        var result = await _repository.GetPagedAsync(
+            page: 1,
+            pageSize: 2,
+            cancellationToken);
 
         Assert.Equal(1, result.Page);
         Assert.Equal(2, result.PageSize);
@@ -103,9 +129,14 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task GetPagedAsync_ShouldReturnSecondPage_WhenReadersExist()
     {
-        var readers = await AddReadersAsync();
+        var cancellationToken = CancellationToken.None;
 
-        var result = await _repository.GetPagedAsync(page: 2, pageSize: 2);
+        var readers = await AddReadersAsync(cancellationToken);
+
+        var result = await _repository.GetPagedAsync(
+            page: 2,
+            pageSize: 2,
+            cancellationToken);
 
         Assert.Equal(2, result.Page);
         Assert.Equal(2, result.PageSize);
@@ -119,7 +150,12 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
     [Fact]
     public async Task GetPagedAsync_ShouldReturnEmptyPage_WhenReadersDoNotExist()
     {
-        var result = await _repository.GetPagedAsync(page: 1, pageSize: 10);
+        var cancellationToken = CancellationToken.None;
+
+        var result = await _repository.GetPagedAsync(
+            page: 1,
+            pageSize: 10,
+            cancellationToken);
 
         Assert.Equal(1, result.Page);
         Assert.Equal(10, result.PageSize);
@@ -128,21 +164,35 @@ public class ReaderRepositoryTests(IntegrationTestFixture fixture) : IAsyncLifet
         Assert.Empty(result.Items);
     }
 
-    private async Task<List<Reader>> AddReadersAsync()
+    private async Task<List<Reader>> AddReadersAsync(CancellationToken cancellationToken = default)
     {
-        var readers = new List<Reader>();
-
-        for (var index = 1; index <= 3; index++)
+        var readers = new List<Reader>
         {
-            var reader = new Reader(
-                $"Reader {index}",
-                $"reader.{index}.{Guid.NewGuid():N}@email.com");
+            Reader.Restore(
+                Guid.NewGuid(),
+                "Reader 1",
+                $"reader.1.{Guid.NewGuid():N}@email.com",
+                ReaderStatus.Active,
+                DateTime.UtcNow.AddMinutes(-3)),
 
-            await _repository.AddAsync(reader);
+            Reader.Restore(
+                Guid.NewGuid(),
+                "Reader 2",
+                $"reader.2.{Guid.NewGuid():N}@email.com",
+                ReaderStatus.Active,
+                DateTime.UtcNow.AddMinutes(-2)),
 
-            readers.Add(reader);
+            Reader.Restore(
+                Guid.NewGuid(),
+                "Reader 3",
+                $"reader.3.{Guid.NewGuid():N}@email.com",
+                ReaderStatus.Active,
+                DateTime.UtcNow.AddMinutes(-1))
+        };
 
-            await Task.Delay(10);
+        foreach (var reader in readers)
+        {
+            await _repository.AddAsync(reader, cancellationToken);
         }
 
         return readers;

@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using LibraryClub.Api.DTOs;
+using LibraryClub.Api.Enums;
+using LibraryClub.Api.Models;
 using LibraryClub.Tests.Fixtures;
 
 namespace LibraryClub.Tests.IntegrationTests;
@@ -10,14 +12,16 @@ namespace LibraryClub.Tests.IntegrationTests;
 public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLifetime
 {
     private readonly HttpClient _client = fixture.Client;
+
     public Task InitializeAsync() => fixture.ResetDatabaseAsync();
+
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Create_ShouldReturnCreated_WhenRequestIsValid()
     {
         var request = new CreateReaderRequest(
-            "John Doe",
+            "John Doe", 
             $"john.{Guid.NewGuid():N}@email.com");
 
         var response = await _client.PostAsJsonAsync("/api/readers", request);
@@ -88,48 +92,9 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
     }
 
     [Fact]
-    public async Task Inactivate_ShouldReturnNoContent_WhenReaderExists()
-    {
-        var request = new CreateReaderRequest(
-            "Ana Lima",
-            $"ana.{Guid.NewGuid():N}@email.com");
-
-        var createResponse = await _client.PostAsJsonAsync("/api/readers", request);
-        var createdReader = await createResponse.Content.ReadFromJsonAsync<ReaderResponse>();
-
-        var inactivateResponse = await _client.PatchAsync(
-            $"/api/readers/{createdReader!.Id}/inactivate",
-            content: null);
-
-        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
-
-        var getResponse = await _client.GetAsync($"/api/readers/{createdReader.Id}");
-        var reader = await getResponse.Content.ReadFromJsonAsync<ReaderResponse>();
-
-        Assert.NotNull(reader);
-        Assert.Equal("Inactive", reader.Status);
-    }
-
-    [Fact]
-    public async Task Inactivate_ShouldReturnNotFound_WhenReaderDoesNotExist()
-    {
-        var response = await _client.PatchAsync(
-            $"/api/readers/{Guid.NewGuid()}/inactivate",
-            content: null);
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
     public async Task GetAll_ShouldReturnOkWithPagedReaders()
     {
-        var firstReader = await CreateReaderAsync("Reader One");
-        await Task.Delay(10);
-
-        var secondReader = await CreateReaderAsync("Reader Two");
-        await Task.Delay(10);
-
-        var thirdReader = await CreateReaderAsync("Reader Three");
+        var readers = await SeedReadersAsync();
 
         var response = await _client.GetAsync("/api/readers?page=1&pageSize=2");
 
@@ -144,8 +109,8 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
         Assert.Equal(2, result.TotalPages);
         Assert.Equal(2, result.Items.Count);
 
-        Assert.Equal(thirdReader.Id, result.Items[0].Id);
-        Assert.Equal(secondReader.Id, result.Items[1].Id);
+        Assert.Equal(readers[2].Id, result.Items[0].Id);
+        Assert.Equal(readers[1].Id, result.Items[1].Id);
     }
 
     [Fact]
@@ -186,30 +151,91 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
     }
 
     [Fact]
-    public async Task GetSubscriptions_ShouldReturnPagedSubscriptions_WhenReaderExists()
+    public async Task Inactivate_ShouldReturnNoContent_WhenReaderExists()
     {
-        var reader = await CreateReaderAsync("Taylor Smith");
+        var request = new CreateReaderRequest(
+            "Ana Lima",
+            $"ana.{Guid.NewGuid():N}@email.com");
 
-        var firstClub = await CreateReadingClubAsync("Romance Club");
-        var firstSubscription = await CreateSubscriptionAsync(reader.Id, firstClub.Id);
-        await Task.Delay(10);
+        var createResponse = await _client.PostAsJsonAsync("/api/readers", request);
+        var createdReader = await createResponse.Content.ReadFromJsonAsync<ReaderResponse>();
 
-        var secondClub = await CreateReadingClubAsync("Fantasy Club");
-        var secondSubscription = await CreateSubscriptionAsync(reader.Id, secondClub.Id);
-
-        var cancelResponse = await _client.PatchAsync(
-            $"/api/club-subscriptions/{secondSubscription.Id}/cancel",
+        var inactivateResponse = await _client.PatchAsync(
+            $"/api/readers/{createdReader!.Id}/inactivate",
             content: null);
 
-        Assert.Equal(HttpStatusCode.NoContent, cancelResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
 
-        await Task.Delay(10);
+        var getResponse = await _client.GetAsync($"/api/readers/{createdReader.Id}");
+        var reader = await getResponse.Content.ReadFromJsonAsync<ReaderResponse>();
 
-        var thirdClub = await CreateReadingClubAsync("Sci-fi Club");
-        var thirdSubscription = await CreateSubscriptionAsync(reader.Id, thirdClub.Id);
+        Assert.NotNull(reader);
+        Assert.Equal("Inactive", reader.Status);
+    }
+
+    [Fact]
+    public async Task Inactivate_ShouldReturnNotFound_WhenReaderDoesNotExist()
+    {
+        var response = await _client.PatchAsync(
+            $"/api/readers/{Guid.NewGuid()}/inactivate",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnNoContent_WhenReaderIsInactive()
+    {
+        var reader = await CreateReaderAsync("Beatriz Nogueira");
+
+        var inactivateResponse = await _client.PatchAsync(
+            $"/api/readers/{reader.Id}/inactivate",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
+
+        var reactivateResponse = await _client.PatchAsync(
+            $"/api/readers/{reader.Id}/reactivate",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NoContent, reactivateResponse.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/readers/{reader.Id}");
+        var reactivatedReader = await getResponse.Content.ReadFromJsonAsync<ReaderResponse>();
+
+        Assert.NotNull(reactivatedReader);
+        Assert.Equal("Active", reactivatedReader.Status);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnNotFound_WhenReaderDoesNotExist()
+    {
+        var response = await _client.PatchAsync(
+            $"/api/readers/{Guid.NewGuid()}/reactivate",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Reactivate_ShouldReturnConflict_WhenReaderIsAlreadyActive()
+    {
+        var reader = await CreateReaderAsync("Rafael Costa");
+
+        var response = await _client.PatchAsync(
+            $"/api/readers/{reader.Id}/reactivate",
+            content: null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSubscriptions_ShouldReturnPagedSubscriptions_WhenReaderExists()
+    {
+        var seededData = await SeedReaderSubscriptionsAsync();
 
         var firstPageResponse = await _client.GetAsync(
-            $"/api/readers/{reader.Id}/subscriptions?page=1&pageSize=2");
+            $"/api/readers/{seededData.Reader.Id}/subscriptions?page=1&pageSize=2");
 
         Assert.Equal(HttpStatusCode.OK, firstPageResponse.StatusCode);
 
@@ -223,13 +249,13 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
         Assert.Equal(2, firstPage.TotalPages);
         Assert.Equal(2, firstPage.Items.Count);
 
-        Assert.Equal(thirdSubscription.Id, firstPage.Items[0].Id);
-        Assert.Equal(secondSubscription.Id, firstPage.Items[1].Id);
+        Assert.Equal(seededData.ThirdSubscription.Id, firstPage.Items[0].Id);
+        Assert.Equal(seededData.SecondSubscription.Id, firstPage.Items[1].Id);
         Assert.Equal("Canceled", firstPage.Items[1].Status);
         Assert.NotNull(firstPage.Items[1].CanceledAt);
 
         var secondPageResponse = await _client.GetAsync(
-            $"/api/readers/{reader.Id}/subscriptions?page=2&pageSize=2");
+            $"/api/readers/{seededData.Reader.Id}/subscriptions?page=2&pageSize=2");
 
         Assert.Equal(HttpStatusCode.OK, secondPageResponse.StatusCode);
 
@@ -241,7 +267,8 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
         Assert.Equal(2, secondPage.TotalPages);
 
         var subscription = Assert.Single(secondPage.Items);
-        Assert.Equal(firstSubscription.Id, subscription.Id);
+
+        Assert.Equal(seededData.FirstSubscription.Id, subscription.Id);
         Assert.Equal("Active", subscription.Status);
     }
 
@@ -296,74 +323,134 @@ public class ReadersControllerTests(IntegrationTestFixture fixture) : IAsyncLife
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Fact]
-    public async Task Reactivate_ShouldReturnNoContent_WhenReaderIsInactive()
-    {
-        var reader = await CreateReaderAsync("Beatriz Nogueira");
-
-        var inactivateResponse = await _client.PatchAsync(
-            $"/api/readers/{reader.Id}/inactivate", content: null);
-
-        Assert.Equal(HttpStatusCode.NoContent, inactivateResponse.StatusCode);
-
-        var reactivateResponse = await _client.PatchAsync(
-            $"/api/readers/{reader.Id}/reactivate", content: null);
-
-        Assert.Equal(HttpStatusCode.NoContent, reactivateResponse.StatusCode);
-
-        var getResponse = await _client.GetAsync($"/api/readers/{reader.Id}");
-        var reactivatedReader = await getResponse.Content.ReadFromJsonAsync<ReaderResponse>();
-
-        Assert.NotNull(reactivatedReader);
-        Assert.Equal("Active", reactivatedReader.Status);
-    }
-
-    [Fact]
-    public async Task Reactivate_ShouldReturnNotFound_WhenReaderDoesNotExist()
-    {
-        var response = await _client.PatchAsync(
-            $"/api/readers/{Guid.NewGuid()}/reactivate", content: null);
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Reactivate_ShouldReturnConflict_WhenReaderIsAlreadyActive()
-    {
-        var reader = await CreateReaderAsync("Rafael Costa");
-
-        var response = await _client.PatchAsync($"/api/readers/{reader.Id}/reactivate", content: null);
-
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-    }
-
     private async Task<ReaderResponse> CreateReaderAsync(string name)
     {
-        var response = await _client.PostAsJsonAsync("/api/readers",
-            new CreateReaderRequest(name, $"{Guid.NewGuid():N}@email.com"));
+        var request = new CreateReaderRequest(
+            name,
+            $"{Guid.NewGuid():N}@email.com");
+
+        var response = await _client.PostAsJsonAsync("/api/readers", request);
 
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<ReaderResponse>())!;
     }
 
-    private async Task<ReadingClubResponse> CreateReadingClubAsync(string name)
+    private async Task<List<Reader>> SeedReadersAsync()
     {
-        var response = await _client.PostAsJsonAsync("/api/reading-clubs",
-            new CreateReadingClubRequest(name, "Test description", "Test genre"));
+        var createdAt = DateTime.UtcNow;
 
-        response.EnsureSuccessStatusCode();
+        var readers = new List<Reader>
+        {
+            Reader.Restore(
+                Guid.NewGuid(),
+                "Reader One",
+                $"reader.one.{Guid.NewGuid():N}@email.com",
+                ReaderStatus.Active,
+                createdAt.AddMinutes(-3)),
 
-        return (await response.Content.ReadFromJsonAsync<ReadingClubResponse>())!;
+            Reader.Restore(
+                Guid.NewGuid(),
+                "Reader Two",
+                $"reader.two.{Guid.NewGuid():N}@email.com",
+                ReaderStatus.Active,
+                createdAt.AddMinutes(-2)),
+
+            Reader.Restore(
+                Guid.NewGuid(),
+                "Reader Three",
+                $"reader.three.{Guid.NewGuid():N}@email.com",
+                ReaderStatus.Active,
+                createdAt.AddMinutes(-1))
+        };
+
+        foreach (var reader in readers)
+        {
+            await fixture.ReaderRepository.AddAsync(reader);
+        }
+
+        return readers;
     }
 
-    private async Task<ClubSubscriptionResponse> CreateSubscriptionAsync(Guid readerId, Guid readingClubId)
+    private async Task<ReaderSubscriptionsSeed> SeedReaderSubscriptionsAsync()
     {
-        var response = await _client.PostAsJsonAsync("/api/club-subscriptions",
-            new CreateClubSubscriptionRequest(readerId, readingClubId));
+        var createdAt = DateTime.UtcNow;
 
-        response.EnsureSuccessStatusCode();
+        var reader = Reader.Restore(
+            Guid.NewGuid(),
+            "Taylor Smith",
+            $"taylor.{Guid.NewGuid():N}@email.com",
+            ReaderStatus.Active,
+            createdAt.AddMinutes(-10));
 
-        return (await response.Content.ReadFromJsonAsync<ClubSubscriptionResponse>())!;
+        var firstClub = ReadingClub.Restore(
+            Guid.NewGuid(),
+            "Romance Club",
+            "Test description",
+            "Test genre",
+            ReadingClubStatus.Active,
+            createdAt.AddMinutes(-9));
+
+        var secondClub = ReadingClub.Restore(
+            Guid.NewGuid(),
+            "Fantasy Club",
+            "Test description",
+            "Test genre",
+            ReadingClubStatus.Active,
+            createdAt.AddMinutes(-8));
+
+        var thirdClub = ReadingClub.Restore(
+            Guid.NewGuid(),
+            "Sci-fi Club",
+            "Test description",
+            "Test genre",
+            ReadingClubStatus.Active,
+            createdAt.AddMinutes(-7));
+
+        var firstSubscription = ClubSubscription.Restore(
+            Guid.NewGuid(),
+            reader.Id,
+            firstClub.Id,
+            ClubSubscriptionStatus.Active,
+            createdAt.AddMinutes(-6),
+            canceledAt: null);
+
+        var secondSubscription = ClubSubscription.Restore(
+            Guid.NewGuid(),
+            reader.Id,
+            secondClub.Id,
+            ClubSubscriptionStatus.Canceled,
+            createdAt.AddMinutes(-5),
+            createdAt.AddMinutes(-4));
+
+        var thirdSubscription = ClubSubscription.Restore(
+            Guid.NewGuid(),
+            reader.Id,
+            thirdClub.Id,
+            ClubSubscriptionStatus.Active,
+            createdAt.AddMinutes(-3),
+            canceledAt: null);
+
+        await fixture.ReaderRepository.AddAsync(reader);
+
+        await fixture.ReadingClubRepository.AddAsync(firstClub);
+        await fixture.ReadingClubRepository.AddAsync(secondClub);
+        await fixture.ReadingClubRepository.AddAsync(thirdClub);
+
+        await fixture.ClubSubscriptionRepository.AddAsync(firstSubscription);
+        await fixture.ClubSubscriptionRepository.AddAsync(secondSubscription);
+        await fixture.ClubSubscriptionRepository.AddAsync(thirdSubscription);
+
+        return new ReaderSubscriptionsSeed(
+            reader,
+            firstSubscription,
+            secondSubscription,
+            thirdSubscription);
     }
+
+    private sealed record ReaderSubscriptionsSeed(
+        Reader Reader,
+        ClubSubscription FirstSubscription,
+        ClubSubscription SecondSubscription,
+        ClubSubscription ThirdSubscription);
 }

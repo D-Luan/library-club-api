@@ -18,14 +18,18 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task AddAsync_ShouldInsertReadingClub_WhenReadingClubIsValid()
     {
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Classic Books",
             "Monthly classics discussion",
             "Classics");
 
-        await _repository.AddAsync(readingClub);
+        await _repository.AddAsync(readingClub, cancellationToken);
 
-        var savedReadingClub = await _repository.GetByIdAsync(readingClub.Id);
+        var savedReadingClub = await _repository.GetByIdAsync(
+            readingClub.Id,
+            cancellationToken);
 
         Assert.NotNull(savedReadingClub);
         Assert.Equal(readingClub.Id, savedReadingClub.Id);
@@ -42,14 +46,18 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task AddAsync_ShouldInsertReadingClub_WhenDescriptionIsNull()
     {
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Sci-Fi Club",
             null,
             "Science Fiction");
 
-        await _repository.AddAsync(readingClub);
+        await _repository.AddAsync(readingClub, cancellationToken);
 
-        var savedReadingClub = await _repository.GetByIdAsync(readingClub.Id);
+        var savedReadingClub = await _repository.GetByIdAsync(
+            readingClub.Id,
+            cancellationToken);
 
         Assert.NotNull(savedReadingClub);
         Assert.Equal(readingClub.Id, savedReadingClub.Id);
@@ -62,7 +70,11 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task GetByIdAsync_ShouldReturnNull_WhenReadingClubDoesNotExist()
     {
-        var readingClub = await _repository.GetByIdAsync(Guid.NewGuid());
+        var cancellationToken = CancellationToken.None;
+
+        var readingClub = await _repository.GetByIdAsync(
+            Guid.NewGuid(),
+            cancellationToken);
 
         Assert.Null(readingClub);
     }
@@ -70,18 +82,22 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task UpdateAsync_ShouldUpdateReadingClubStatusToInactive_WhenReadingClubExists()
     {
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Fantasy Club",
             "Fantasy books",
             "Fantasy");
 
-        await _repository.AddAsync(readingClub);
+        await _repository.AddAsync(readingClub, cancellationToken);
 
         readingClub.Inactivate();
 
-        await _repository.UpdateAsync(readingClub);
+        await _repository.UpdateAsync(readingClub, cancellationToken);
 
-        var updatedReadingClub = await _repository.GetByIdAsync(readingClub.Id);
+        var updatedReadingClub = await _repository.GetByIdAsync(
+            readingClub.Id,
+            cancellationToken);
 
         Assert.NotNull(updatedReadingClub);
         Assert.Equal(ReadingClubStatus.Inactive, updatedReadingClub.Status);
@@ -93,18 +109,22 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task UpdateAsync_ShouldUpdateReadingClubStatusToArchived_WhenReadingClubExists()
     {
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "History Club",
             "History books",
             "History");
 
-        await _repository.AddAsync(readingClub);
+        await _repository.AddAsync(readingClub, cancellationToken);
 
         readingClub.Archive();
 
-        await _repository.UpdateAsync(readingClub);
+        await _repository.UpdateAsync(readingClub, cancellationToken);
 
-        var updatedReadingClub = await _repository.GetByIdAsync(readingClub.Id);
+        var updatedReadingClub = await _repository.GetByIdAsync(
+            readingClub.Id,
+            cancellationToken);
 
         Assert.NotNull(updatedReadingClub);
         Assert.Equal(ReadingClubStatus.Archived, updatedReadingClub.Status);
@@ -113,18 +133,22 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task UpdateAsync_ShouldUpdateReadingClubData_WhenReadingClubExists()
     {
+        var cancellationToken = CancellationToken.None;
+
         var readingClub = new ReadingClub(
             "Old Name",
             "Old description",
             "Old genre");
 
-        await _repository.AddAsync(readingClub);
+        await _repository.AddAsync(readingClub, cancellationToken);
 
         readingClub.UpdateDetails("New Name", "New description", "New genre");
 
-        await _repository.UpdateAsync(readingClub);
+        await _repository.UpdateAsync(readingClub, cancellationToken);
 
-        var updatedReadingClub = await _repository.GetByIdAsync(readingClub.Id);
+        var updatedReadingClub = await _repository.GetByIdAsync(
+            readingClub.Id,
+            cancellationToken);
 
         Assert.NotNull(updatedReadingClub);
         Assert.Equal("New Name", updatedReadingClub.Name);
@@ -135,9 +159,14 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task GetPagedAsync_ShouldReturnFirstPage_WhenReadingClubsExist()
     {
-        var readingClubs = await AddReadingClubsAsync();
+        var cancellationToken = CancellationToken.None;
 
-        var result = await _repository.GetPagedAsync(page: 1, pageSize: 2);
+        var readingClubs = await AddReadingClubsAsync(cancellationToken);
+
+        var result = await _repository.GetPagedAsync(
+            page: 1,
+            pageSize: 2,
+            cancellationToken);
 
         Assert.Equal(1, result.Page);
         Assert.Equal(2, result.PageSize);
@@ -152,9 +181,14 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     [Fact]
     public async Task GetPagedAsync_ShouldReturnSecondPage_WhenReadingClubsExist()
     {
-        var readingClubs = await AddReadingClubsAsync();
+        var cancellationToken = CancellationToken.None;
 
-        var result = await _repository.GetPagedAsync(page: 2, pageSize: 2);
+        var readingClubs = await AddReadingClubsAsync(cancellationToken);
+
+        var result = await _repository.GetPagedAsync(
+            page: 2,
+            pageSize: 2,
+            cancellationToken);
 
         Assert.Equal(2, result.Page);
         Assert.Equal(2, result.PageSize);
@@ -166,9 +200,14 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
     }
 
     [Fact]
-    public async Task GetPagedAsync_ShouldReturnEmptyPage_WhenReadingClubsDoNotExist()
+    public async Task GetPagedAsync_ShouldReturnEmptyPage_WhenNoReadingClubsExist()
     {
-        var result = await _repository.GetPagedAsync(page: 1, pageSize: 10);
+        var cancellationToken = CancellationToken.None;
+
+        var result = await _repository.GetPagedAsync(
+            page: 1,
+            pageSize: 10,
+            cancellationToken);
 
         Assert.Equal(1, result.Page);
         Assert.Equal(10, result.PageSize);
@@ -177,22 +216,41 @@ public class ReadingClubRepositoryTests(IntegrationTestFixture fixture) : IAsync
         Assert.Empty(result.Items);
     }
 
-    private async Task<List<ReadingClub>> AddReadingClubsAsync()
+    private async Task<List<ReadingClub>> AddReadingClubsAsync(
+        CancellationToken cancellationToken = default)
     {
-        var readingClubs = new List<ReadingClub>();
+        var createdAt = DateTime.UtcNow;
 
-        for (var index = 1; index <= 3; index++)
+        var readingClubs = new List<ReadingClub>
         {
-            var readingClub = new ReadingClub(
-                $"Reading Club {index}",
-                $"Description {index}",
-                $"Genre {index}");
+            ReadingClub.Restore(
+                Guid.NewGuid(),
+                "Reading Club 1",
+                "Description 1",
+                "Genre 1",
+                ReadingClubStatus.Active,
+                createdAt.AddMinutes(-3)),
 
-            await _repository.AddAsync(readingClub);
+            ReadingClub.Restore(
+                Guid.NewGuid(),
+                "Reading Club 2",
+                "Description 2",
+                "Genre 2",
+                ReadingClubStatus.Active,
+                createdAt.AddMinutes(-2)),
 
-            readingClubs.Add(readingClub);
+            ReadingClub.Restore(
+                Guid.NewGuid(),
+                "Reading Club 3",
+                "Description 3",
+                "Genre 3",
+                ReadingClubStatus.Active,
+                createdAt.AddMinutes(-1))
+        };
 
-            await Task.Delay(10);
+        foreach (var readingClub in readingClubs)
+        {
+            await _repository.AddAsync(readingClub, cancellationToken);
         }
 
         return readingClubs;
