@@ -1,10 +1,12 @@
 using FluentValidation;
-using Serilog;
 using LibraryClub.Api.Data;
+using LibraryClub.Api.Extensions;
 using LibraryClub.Api.Middlewares;
 using LibraryClub.Api.Repositories;
 using LibraryClub.Api.Services;
 using LibraryClub.Api.Validators;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Serilog;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -45,6 +47,12 @@ try
             options.ConnectionString = applicationInsightsConnectionString;
         });
     }
+
+    builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        connectionString: connectionString,
+        name: "SQL Server",
+        tags: ["db", "sql", "sqlserver"]);
 
     builder.Services.AddSingleton<ISqlConnectionFactory>(new SqlConnectionFactory(connectionString));
 
@@ -100,6 +108,11 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = HealthCheckExtensions.WriteHealthCheckResponseAsync
+    });
 
     app.Run();
 }
